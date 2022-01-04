@@ -4,19 +4,23 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build:css": "postcss css/tailwind.css -o public/css/tailwind.css",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon index.js"
+    "dev": "npm run build:css && nodemon --ext '*' index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "cookie-parser": "^1.4.6",
     "dotenv": "^10.0.0",
     "ejs": "^3.1.6",
     "express": "^4.17.2",
     "pg": "^8.7.1",
+    "postcss-cli": "^9.1.0",
     "psql": "^0.0.1",
     "sequelize": "^7.0.0-alpha.4",
-    "sequelize-cli": "^6.3.0"
+    "sequelize-cli": "^6.3.0",
+    "tailwindcss": "^3.0.9"
   }
 }
