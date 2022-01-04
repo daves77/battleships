@@ -5,11 +5,37 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="css/tailwind.css" />
-    <title>Boards</title>
+    <title>Battleships</title>
   </head>
   <body>
-    <div class="bg-pink-500">
-      <p>hello world</p>
+    <div class="max-w-5xl mx-auto">
+      <div id="board" class="">
+        <div
+          id="opponent-board"
+          class="bg-green-600 p-4 flex justify-center align-middle"
+        >
+          <div id="opponent-grid" class="flex h-96 w-96"></div>
+        </div>
+
+        <div id="user-board" class="bg-indigo-600 p-4 grid grid-cols-4">
+          <div class="ships bg-yellow-300 h-full w-auto p-4">
+            <div
+              id="test-ship"
+              class="inline-flex items-start"
+              draggable="true"
+            >
+              <div id="cruiser-1" class="h-10 w-10 bg-green-600"></div>
+              <div id="cruiser-2" class="h-10 w-10 bg-green-600"></div>
+              <div id="cruiser-3" class="h-10 w-10 bg-green-600"></div>
+            </div>
+          </div>
+          <div class="col-span-3 flex justify-center items-center">
+            <div id="user-grid" class="flex h-96 w-96"></div>
+          </div>
+        </div>
+      </div>
     </div>
+
+    <script src="scripts/game.js"></script>
   </body>
 </html>
