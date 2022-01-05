@@ -6,6 +6,13 @@ const boardMetaData = {
 
 const ships = [
   {
+    name: "slowboat",
+    length: 2,
+    color: "magenta",
+    rotated: false,
+    el: null,
+  },
+  {
     name: "bumboat",
     length: 2,
     color: "green",
@@ -179,7 +186,6 @@ const getShipGridIndex = (
     shipPositioningIndex,
     ship
   );
-
   const positionIsValid = checkIfPositionValid(
     gridPlacementId,
     startingPositionOnGrid,
@@ -287,6 +293,7 @@ ships.forEach((ship) => {
   });
 
   ship.el.addEventListener("click", (e) => {
+    console.log("clicked");
     // how do i rotate the ship
     const shipDiv = e.target.parentElement;
     const shipId = shipDiv.id.substr(-1);
@@ -312,13 +319,15 @@ userBoard.forEach((square) => {
 
 const placeShip = (cpuShips) => {
   const randomShipIndex = _.random(0, cpuShips.length - 1);
-  const ship = cpuShips[randomShipIndex];
+  const cpuShip = cpuShips[randomShipIndex];
   const randomGridId = _.random(0, opponentBoard.length - 1);
-  ship.rotated = _.random(1) === 1 ? true : false;
+  console.log(ships, "ship before");
+  cpuShip.rotated = _.random(1) === 1 ? true : false;
+  console.log(ships, "ships");
   const positionArray = getShipGridIndex(
     randomGridId,
     "1",
-    ship,
+    cpuShip,
     opponentBoard
   );
 
@@ -333,7 +342,7 @@ const placeShip = (cpuShips) => {
 
     positionArray.forEach((index) => {
       const grid = opponentBoard[index].el;
-      grid.style.backgroundColor = ship.color;
+      grid.style.backgroundColor = cpuShip.color;
       grid.classList.add("target");
 
       //remove ship from ship container once placed
@@ -348,8 +357,10 @@ const placeShip = (cpuShips) => {
 };
 
 const placeCpuShips = () => {
-  const cpuShips = [...ships];
+  const cpuShips = JSON.parse(JSON.stringify(ships));
   placeShip(cpuShips);
 };
 
 placeCpuShips();
+
+console.log(ships);
