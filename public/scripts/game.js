@@ -113,6 +113,27 @@ const dragOver = (e) => {
   e.preventDefault();
 };
 
+const checkIfPlacmentWithinGrid = (gridId, start, end, isRotated) => {
+  console.log(gridId, start, end);
+  const gridMetaData = board[gridId];
+  let lowerLimit;
+  let upperLimit;
+
+  if (!isRotated) {
+    lowerLimit = gridMetaData.row * boardMetaData.size;
+    upperLimit = (gridMetaData.row + 1) * boardMetaData.size - 1;
+  } else {
+    lowerLimit = 0;
+    upperLimit = 100;
+  }
+
+  if (start < lowerLimit || end > upperLimit) {
+    return false;
+  }
+
+  return true;
+};
+
 const dragDrop = (e) => {
   console.log("dropped");
   const lastShipDivId = draggedShip.el.lastElementChild.id;
@@ -128,8 +149,14 @@ const dragDrop = (e) => {
     const startingPositionOnGrid = gridPlacementId - shipPositionIndex;
     const endingPositionOnGrid =
       startingPositionOnGrid + draggedShip.length - 1;
-    console.log(startingPositionOnGrid, "start pos");
-    console.log(endingPositionOnGrid, "end pos");
+
+    const isLegalPlacment = checkIfPlacmentWithinGrid(
+      gridPlacementId,
+      startingPositionOnGrid,
+      endingPositionOnGrid,
+      draggedShip.rotated
+    );
+    console.log(isLegalPlacment);
   } else {
     // board placment logic if ship is rotated
     console.log(e.target.id);
@@ -140,7 +167,13 @@ const dragDrop = (e) => {
       startingPositionOnGrid + (draggedShip.length - 1) * boardMetaData.size;
     console.log(startingPositionOnGrid, "start pos");
     console.log(endingPositionOnGrid, "end pos");
-    for (let i = 0; i < draggedShip.length; i++) {}
+    const isLegalPlacment = checkIfPlacmentWithinGrid(
+      gridPlacementId,
+      startingPositionOnGrid,
+      endingPositionOnGrid,
+      draggedShip.rotated
+    );
+    console.log(isLegalPlacment);
   }
 };
 
