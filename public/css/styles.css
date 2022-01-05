@@ -10,3 +10,8 @@
 .ship {
   margin-left: 20px;
 }
+
+#ships-container {
+  background-color: black;
+  padding: 2rem;
+}

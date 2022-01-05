@@ -9,28 +9,21 @@
     <title>Battleships</title>
   </head>
   <body class="bg-gray-900">
-    <div class="max-w-5xl mx-auto">
-      <div id="board" class="">
-        <div class="bg-gray-900 p-4 flex justify-between align-middle">
-          <div
-            id="user-grid"
-            class="flex flex-wrap p-4"
-            style="width: 400px"
-          ></div>
-          <div id="opponent-grid" class="p-4 w-96"></div>
+    <div class="max-w-6xl mx-auto">
+      <div id="board" class="p-5">
+        <div class="bg-gray-900 flex justify-between align-middle">
+          <div id="user-grid" class="flex flex-wrap" style="width: 400px"></div>
+          <div id="opponent-grid" class=""></div>
         </div>
 
-        <div class="bg-gray-900 p-4 grid grid-rows-4">
+        <div class="bg-gray-900">
           <div
             id="message-output"
-            class="col-span-4 bg-gray-800 row-span-1 mb-4"
+            class="bg-gray-800 mb-4 mt-4"
             style="color: #39ff14"
           ></div>
-          <div id="hud" class="row-span-3 grid grid-cols-6">
-            <div
-              id="ships-container"
-              class="ships bg-gray-900 flex justify-between"
-            ></div>
+          <div id="hud" class="">
+            <div id="ships-container" class="ships flex bg-gray-900"></div>
           </div>
         </div>
       </div>

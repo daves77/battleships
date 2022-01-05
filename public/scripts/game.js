@@ -322,6 +322,7 @@ ships.forEach((ship) => {
 
   ship.el.addEventListener("mouseover", (e) => {
     const shipDiv = e.target.parentElement;
+    console.log(shipDiv);
     selectedShip = shipDiv.style.outline = "2px solid blue";
     shipDiv.style.outlineOffset = "2px";
   });
