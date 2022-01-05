@@ -310,28 +310,46 @@ userBoard.forEach((square) => {
   square.el.addEventListener("dragend", dragEnd);
 });
 
-const placeCpuShip = () => {
-  const cpuShips = [...ships];
-  while (cpuShips.length !== 0) {
-    const randomShipIndex = _.random(0, cpuShips.length);
-    const ship = cpuShips[randomShipIndex];
-    const randomGridId = _.random(0, opponentBoard.length);
-    const positionArray = getShipGridIndex(
-      randomGridId,
-      _.random(0, ship.length),
-      ship
+const placeShip = (cpuShips) => {
+  const randomShipIndex = _.random(0, cpuShips.length - 1);
+  const ship = cpuShips[randomShipIndex];
+  const randomGridId = _.random(0, opponentBoard.length - 1);
+  ship.rotated = _.random(1) === 1 ? true : false;
+  const positionArray = getShipGridIndex(
+    randomGridId,
+    "1",
+    ship,
+    opponentBoard
+  );
+
+  if (positionArray) {
+    const isOverlapping = positionArray.some((index) =>
+      opponentBoard[index].el.classList.contains("target")
     );
-
-    if (positionArray) {
-      positionArray.forEach((index) => {
-        const grid = opponentBoard[index].el;
-        grid.style.backgroundColor = ship.color;
-        grid.classList.add("target");
-
-        //remove ship from ship container once placed
-      });
+    if (isOverlapping) {
+      placeShip(cpuShips);
+      return;
     }
+
+    positionArray.forEach((index) => {
+      const grid = opponentBoard[index].el;
+      grid.style.backgroundColor = ship.color;
+      grid.classList.add("target");
+
+      //remove ship from ship container once placed
+    });
+
+    cpuShips.splice(randomShipIndex, 1);
+  }
+
+  if (cpuShips.length !== 0) {
+    placeShip(cpuShips);
   }
 };
 
-// placeCpuShip();
+const placeCpuShips = () => {
+  const cpuShips = [...ships];
+  placeShip(cpuShips);
+};
+
+placeCpuShips();
