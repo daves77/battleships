@@ -1,6 +1,3 @@
-const boardSize = 10;
-const board = [];
-
 const boardMetaData = {
   size: 10,
   width: 400,
@@ -23,6 +20,8 @@ const ships = [
     el: null,
   },
 ];
+
+board = [];
 
 const userGrid = document.getElementById("user-grid");
 
@@ -63,12 +62,12 @@ const generateShips = (ships) => {
 // generates the playing board for each battleship game
 const generateBoard = (grid) => {
   idCounter = 0;
-  for (let i = 0; i < boardSize; i++) {
+  for (let i = 0; i < boardMetaData.size; i++) {
     const gridRow = document.createElement("div");
     gridRow.style.width = `${boardMetaData.width}px`;
     gridRow.style.height = `${boardMetaData.height / boardMetaData.size}px`;
     gridRow.style.display = "flex";
-    for (let j = 0; j < boardSize; j++) {
+    for (let j = 0; j < boardMetaData.size; j++) {
       const squareGrid = document.createElement("div");
       const squareGridMetaData = {
         id: idCounter++,
@@ -101,14 +100,13 @@ const rotateShips = () => {};
 let selectedShip;
 
 let draggedShip;
-let draggedShipLength;
 let draggedShipNameWithPositionIndex;
 
 const selectShip = (e) => {};
 
 const dragStart = (e) => {
-  draggedShip = e.target;
-  draggedShipLength = draggedShip.children.length;
+  const draggedShipIndex = e.target.id.substr(-1);
+  draggedShip = ships[draggedShipIndex];
 };
 
 const dragOver = (e) => {
@@ -117,18 +115,33 @@ const dragOver = (e) => {
 
 const dragDrop = (e) => {
   console.log("dropped");
-  const lastShipDivId = draggedShip.lastElementChild.id;
+  const lastShipDivId = draggedShip.el.lastElementChild.id;
   const shipType = lastShipDivId.slice(0, -2);
-  const startingPositionOnGrid =
-    parseInt(e.target.id) -
-    parseInt(draggedShipNameWithPositionIndex.substr(-1));
-  const endingPositionOnGrid = startingPositionOnGrid + draggedShipLength - 1;
-  console.log(
-    e.target.id,
-    parseInt(draggedShipNameWithPositionIndex.substr(-1))
-  );
-  console.log(startingPositionOnGrid, "start pos");
-  console.log(endingPositionOnGrid, "end pos");
+  const gridPlacementId = parseInt(e.target.id); //id of grid placed on
+  const shipPositionIndex = parseInt(
+    draggedShipNameWithPositionIndex.substr(-1)
+  ); //position index of ship
+
+  let filledGridsIndex = [];
+  if (!draggedShip.rotated) {
+    // board placement logic if ship is not rotated
+    const startingPositionOnGrid = gridPlacementId - shipPositionIndex;
+    const endingPositionOnGrid =
+      startingPositionOnGrid + draggedShip.length - 1;
+    console.log(startingPositionOnGrid, "start pos");
+    console.log(endingPositionOnGrid, "end pos");
+  } else {
+    // board placment logic if ship is rotated
+    console.log(e.target.id);
+    console.log(parseInt(draggedShipNameWithPositionIndex.substr(-1)));
+    const startingPositionOnGrid =
+      gridPlacementId - shipPositionIndex * boardMetaData.size;
+    const endingPositionOnGrid =
+      startingPositionOnGrid + (draggedShip.length - 1) * boardMetaData.size;
+    console.log(startingPositionOnGrid, "start pos");
+    console.log(endingPositionOnGrid, "end pos");
+    for (let i = 0; i < draggedShip.length; i++) {}
+  }
 };
 
 const dragEnter = (e) => {
@@ -138,13 +151,6 @@ const dragEnter = (e) => {
 const dragLeave = () => {};
 
 const dragEnd = () => {};
-
-// const testShip = document.getElementById("test-ship-0");
-// testShip.addEventListener("mousedown", (e) => {
-//   draggedShipNameWithPositionIndex = e.target.id;
-//   console.log(draggedShipNameWithPositionIndex);
-// });
-// testShip.addEventListener("dragstart", dragStart);
 
 ships.forEach((ship) => {
   ship.el.addEventListener("mousedown", (e) => {
