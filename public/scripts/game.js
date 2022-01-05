@@ -28,36 +28,36 @@ const ships = [
     destroyed: false,
     el: null,
   },
-  // {
-  //   name: "speedboat",
-  //   length: 3,
-  //   color: "gold",
-  //   rotated: false,
-  //   placed: false,
-  // hitCount: 0,
-  // destroyed: false,
-  //   el: null,
-  // },
-  // {
-  //   name: "cruiser",
-  //   length: 3,
-  //   color: "blue",
-  //   rotated: false,
-  //   placed: false,
-  // hitCount: 0,
-  // destroyed: false,
-  //   el: null,
-  // },
-  // {
-  //   name: "submarine",
-  //   length: 4,
-  //   color: "purple",
-  //   rotated: false,
-  //   placed: false,
-  // hitCount: 0,
-  // destroyed: false,
-  //   el: null,
-  // },
+  {
+    name: "speedboat",
+    length: 3,
+    color: "gold",
+    rotated: false,
+    placed: false,
+    hitCount: 0,
+    destroyed: false,
+    el: null,
+  },
+  {
+    name: "cruiser",
+    length: 3,
+    color: "blue",
+    rotated: false,
+    placed: false,
+    hitCount: 0,
+    destroyed: false,
+    el: null,
+  },
+  {
+    name: "submarine",
+    length: 4,
+    color: "purple",
+    rotated: false,
+    placed: false,
+    hitCount: 0,
+    destroyed: false,
+    el: null,
+  },
 ];
 
 const opponentShips = JSON.parse(JSON.stringify(ships));
@@ -72,15 +72,21 @@ const opponentBoard = [];
 
 const userGrid = document.getElementById("user-grid");
 const opponentGrid = document.getElementById("opponent-grid");
+const messageOutput = document.getElementById("message-output");
+
+const sendMessage = (message) => {
+  messageOutput.innerText = message;
+};
 
 const createShip = (shipData, index) => {
   const shipOuterDiv = document.createElement("div");
-  shipOuterDiv.style.width = "100%";
+  // shipOuterDiv.style.width = "100px";
   //create ship container
   const shipDiv = document.createElement("div");
   shipDiv.style.display = "inline-flex";
   shipDiv.draggable = "true";
   shipDiv.id = `${shipData.name}-${index}`;
+  shipDiv.classList.add("ship");
 
   //create ship grid positioning components
   for (let i = 0; i < shipData.length; i++) {
@@ -273,6 +279,11 @@ const dragDrop = (e) => {
 
     if (playerReady) {
       startGame();
+      const hud = document.getElementById("hud");
+      const shipContainer = document.getElementById("ships-container");
+      console.log(shipContainer);
+      // hud.removeChild(shipContainer);
+      // document.
     }
   }
 
@@ -396,6 +407,7 @@ const startGame = () => {
 };
 
 const playGame = () => {
+  sendMessage(`${currentPlayer}'s turn`);
   switch (currentPlayer) {
     case "player":
       console.log("player turn");
@@ -445,11 +457,11 @@ const revealGrid = (gridEl, ships) => {
     endGame();
   } else {
     currentPlayer = players.filter((player) => player !== currentPlayer)[0];
-    console.log(currentPlayer, "currentPlayer");
     playGame();
   }
 };
 
 const endGame = () => {
+  sendMessage(`${currentPlayer} is the winner!`);
   console.log("game end", currentPlayer);
 };

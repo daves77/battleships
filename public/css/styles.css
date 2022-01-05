@@ -1,3 +1,12 @@
 .exploded {
   background-color: red;
 }
+
+#message-output {
+  color: "#39FF14" !important;
+  font-size: 40px;
+}
+
+.ship {
+  margin-left: 20px;
+}
