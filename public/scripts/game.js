@@ -7,7 +7,58 @@ const boardMetaData = {
   height: 400,
 };
 
+const ships = [
+  {
+    name: "cruiser",
+    length: 3,
+    color: "blue",
+    rotated: false,
+    el: null,
+  },
+  {
+    name: "submarine",
+    length: 4,
+    color: "red",
+    rotated: false,
+    el: null,
+  },
+];
+
 const userGrid = document.getElementById("user-grid");
+
+const createShip = (shipData, index) => {
+  const shipOuterDiv = document.createElement("div");
+  shipOuterDiv.style.width = "100%";
+  //create ship container
+  const shipDiv = document.createElement("div");
+  shipDiv.style.display = "inline-flex";
+  shipDiv.draggable = "true";
+  shipDiv.id = `${shipData.name}-${index}`;
+
+  //create ship grid positioning components
+  for (let i = 0; i < shipData.length; i++) {
+    const shipGridDiv = document.createElement("div");
+    shipGridDiv.id = `${shipData.name}-${i}`;
+    shipGridDiv.style.height = "40px";
+    shipGridDiv.style.width = "40px";
+    shipGridDiv.style.backgroundColor = shipData.color;
+    shipDiv.appendChild(shipGridDiv);
+  }
+
+  shipOuterDiv.appendChild(shipDiv);
+  return shipOuterDiv;
+};
+
+const generateShips = (ships) => {
+  const shipsContainer = document.getElementById("ships-container");
+  ships.forEach((ship, index) => {
+    const createdShip = createShip(ship, index);
+
+    // add ship to ships object
+    ship.el = createdShip;
+    shipsContainer.appendChild(createdShip);
+  });
+};
 
 // generates the playing board for each battleship game
 const generateBoard = (grid) => {
@@ -20,7 +71,7 @@ const generateBoard = (grid) => {
     for (let j = 0; j < boardSize; j++) {
       const squareGrid = document.createElement("div");
       const squareGridMetaData = {
-        id: ++idCounter,
+        id: idCounter++,
         row: i,
         column: j,
         el: squareGrid,
@@ -42,20 +93,22 @@ const generateBoard = (grid) => {
   }
 };
 
+generateShips(ships);
 generateBoard(userGrid);
 
+const rotateShips = () => {};
+
 let selectedShip;
-let selectedShipIndex;
+
 let draggedShip;
+let draggedShipLength;
+let draggedShipNameWithPositionIndex;
 
 const selectShip = (e) => {};
 
 const dragStart = (e) => {
   draggedShip = e.target;
-  console.log(draggedShip);
-  selectedShip = e.target;
-  selectedShipIndex = parseInt(selectedShip.id.substr(-1));
-  console.log(selectedShipIndex);
+  draggedShipLength = draggedShip.children.length;
 };
 
 const dragOver = (e) => {
@@ -64,13 +117,18 @@ const dragOver = (e) => {
 
 const dragDrop = (e) => {
   console.log("dropped");
-  console.log(e.target);
   const lastShipDivId = draggedShip.lastElementChild.id;
   const shipType = lastShipDivId.slice(0, -2);
-  const lastShipId = parseInt(lastShipDivId.substr(-1));
-  console.log(lastShipId);
-  console.log(e.target.id);
-  console.log(selectedShip.id);
+  const startingPositionOnGrid =
+    parseInt(e.target.id) -
+    parseInt(draggedShipNameWithPositionIndex.substr(-1));
+  const endingPositionOnGrid = startingPositionOnGrid + draggedShipLength - 1;
+  console.log(
+    e.target.id,
+    parseInt(draggedShipNameWithPositionIndex.substr(-1))
+  );
+  console.log(startingPositionOnGrid, "start pos");
+  console.log(endingPositionOnGrid, "end pos");
 };
 
 const dragEnter = (e) => {
@@ -81,8 +139,45 @@ const dragLeave = () => {};
 
 const dragEnd = () => {};
 
-const testShip = document.getElementById("test-ship-0");
-testShip.addEventListener("dragstart", dragStart);
+// const testShip = document.getElementById("test-ship-0");
+// testShip.addEventListener("mousedown", (e) => {
+//   draggedShipNameWithPositionIndex = e.target.id;
+//   console.log(draggedShipNameWithPositionIndex);
+// });
+// testShip.addEventListener("dragstart", dragStart);
+
+ships.forEach((ship) => {
+  ship.el.addEventListener("mousedown", (e) => {
+    draggedShipNameWithPositionIndex = e.target.id;
+  });
+
+  ship.el.addEventListener("mouseover", (e) => {
+    const shipDiv = e.target.parentElement;
+    selectedShip = shipDiv.style.outline = "2px solid blue";
+    shipDiv.style.outlineOffset = "2px";
+  });
+
+  ship.el.addEventListener("mouseout", (e) => {
+    const shipDiv = e.target.parentElement;
+    shipDiv.style.outline = "";
+  });
+
+  ship.el.addEventListener("click", (e) => {
+    // how do i rotate the ship
+    const shipDiv = e.target.parentElement;
+    const shipId = shipDiv.id.substr(-1);
+    console.log(shipId);
+
+    const ship = ships[shipId];
+    const rotate = ship.rotated ? "inline-flex" : "inline-block";
+
+    ship.rotated = !ship.rotated;
+    console.log(rotate);
+    shipDiv.style.display = rotate;
+  });
+
+  ship.el.addEventListener("dragstart", dragStart);
+});
 
 board.forEach((square) => {
   square.el.addEventListener("dragstart", dragStart);
@@ -92,5 +187,3 @@ board.forEach((square) => {
   square.el.addEventListener("drop", dragDrop);
   square.el.addEventListener("dragend", dragEnd);
 });
-
-console.log(board);
