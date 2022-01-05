@@ -6,6 +6,20 @@ const boardMetaData = {
 
 const ships = [
   {
+    name: "bumboat",
+    length: 2,
+    color: "green",
+    rotated: false,
+    el: null,
+  },
+  {
+    name: "speedboat",
+    length: 3,
+    color: "gold",
+    rotated: false,
+    el: null,
+  },
+  {
     name: "cruiser",
     length: 3,
     color: "blue",
@@ -15,15 +29,22 @@ const ships = [
   {
     name: "submarine",
     length: 4,
-    color: "red",
+    color: "purple",
     rotated: false,
     el: null,
   },
 ];
 
-const board = [];
+const colors = {
+  gridBackground: "#111827",
+  gridBorders: "#39FF14",
+};
+
+const userBoard = [];
+const opponentBoard = [];
 
 const userGrid = document.getElementById("user-grid");
+const opponentGrid = document.getElementById("opponent-grid");
 
 const createShip = (shipData, index) => {
   const shipOuterDiv = document.createElement("div");
@@ -60,7 +81,7 @@ const generateShips = (ships) => {
 };
 
 // generates the playing board for each battleship game
-const generateBoard = (grid) => {
+const generateBoard = (grid, board) => {
   idCounter = 0;
   for (let i = 0; i < boardMetaData.size; i++) {
     const gridRow = document.createElement("div");
@@ -76,14 +97,14 @@ const generateBoard = (grid) => {
         el: squareGrid,
       };
       squareGrid.id = squareGridMetaData.id;
-      squareGrid.style.backgroundColor = "red";
+      squareGrid.style.backgroundColor = colors.gridBackground;
       squareGrid.style.minWidth = `${
         boardMetaData.width / boardMetaData.size
       }px`;
       squareGrid.style.minHeight = `${
         boardMetaData.height / boardMetaData.size
       }px`;
-      squareGrid.style.border = "1px solid #000";
+      squareGrid.style.border = `1px solid ${colors.gridBorders}`;
       squareGrid.classList.add("square-grid");
       gridRow.appendChild(squareGrid);
       board.push(squareGridMetaData);
@@ -93,11 +114,13 @@ const generateBoard = (grid) => {
 };
 
 generateShips(ships);
-generateBoard(userGrid);
+generateBoard(userGrid, userBoard);
+generateBoard(opponentGrid, opponentBoard);
 
 let selectedShip;
 let draggedShip;
 let draggedShipNameWithPositionIndex;
+let isOverlapping;
 
 const dragStart = (e) => {
   const draggedShipIndex = e.target.id.substr(-1);
@@ -105,7 +128,7 @@ const dragStart = (e) => {
 };
 
 //check if player ship placement is legal
-const checkIfPositionValid = (gridId, start, end, isRotated) => {
+const checkIfPositionValid = (gridId, start, end, isRotated, board) => {
   const gridMetaData = board[gridId];
   let lowerLimit;
   let upperLimit;
@@ -125,41 +148,48 @@ const checkIfPositionValid = (gridId, start, end, isRotated) => {
   return true;
 };
 
-const getShipPositioning = (gridPlacementId) => {
-  const shipPositionIndex = parseInt(
-    draggedShipNameWithPositionIndex.substr(-1)
-  ); //position index of ship
+const getShipPositioning = (gridPlacementId, shipPositioningIndex, ship) => {
+  const shipPositionIndex = parseInt(shipPositioningIndex.substr(-1)); //position index of ship
 
   let startingPositionOnGrid;
   let endingPositionOnGrid;
   let positionArray = [];
-  if (!draggedShip.rotated) {
+  if (!ship.rotated) {
     // board placement logic if ship is not rotated
     startingPositionOnGrid = gridPlacementId - shipPositionIndex;
-    endingPositionOnGrid = startingPositionOnGrid + draggedShip.length - 1;
+    endingPositionOnGrid = startingPositionOnGrid + ship.length - 1;
   } else {
     // board placment logic if ship is rotated
     startingPositionOnGrid =
       gridPlacementId - shipPositionIndex * boardMetaData.size;
     endingPositionOnGrid =
-      startingPositionOnGrid + (draggedShip.length - 1) * boardMetaData.size;
+      startingPositionOnGrid + (ship.length - 1) * boardMetaData.size;
   }
   return { startingPositionOnGrid, endingPositionOnGrid };
 };
 
-const getShipGridIndex = (gridPlacementId) => {
-  const { startingPositionOnGrid, endingPositionOnGrid } =
-    getShipPositioning(gridPlacementId);
+const getShipGridIndex = (
+  gridPlacementId,
+  shipPositioningIndex,
+  ship,
+  board
+) => {
+  const { startingPositionOnGrid, endingPositionOnGrid } = getShipPositioning(
+    gridPlacementId,
+    shipPositioningIndex,
+    ship
+  );
 
   const positionIsValid = checkIfPositionValid(
     gridPlacementId,
     startingPositionOnGrid,
     endingPositionOnGrid,
-    draggedShip.rotated
+    ship.rotated,
+    board
   );
 
   if (positionIsValid) {
-    if (draggedShip.rotated) {
+    if (ship.rotated) {
       return _.range(startingPositionOnGrid, endingPositionOnGrid + 1, 10);
     }
 
@@ -171,19 +201,47 @@ const getShipGridIndex = (gridPlacementId) => {
 
 const dragOver = (e) => {
   e.preventDefault();
-  const positionArray = getShipGridIndex(e.target.id);
+  const positionArray = getShipGridIndex(
+    e.target.id,
+    draggedShipNameWithPositionIndex,
+    draggedShip,
+    userBoard
+  );
   //highlight blocks that are being selected
   if (positionArray) {
-    console.log(positionArray);
+    isOverlapping = positionArray.some((index) =>
+      userBoard[index].el.classList.contains("target")
+    );
     positionArray.forEach((index) => {
-      board[index].el.style.backgroundColor = "blue";
+      const grid = userBoard[index].el;
+      if (!isOverlapping) {
+        grid.style.backgroundColor = "red";
+      }
     });
   }
 };
 
 const dragDrop = (e) => {
-  const gridPlacementId = e.target.id;
-  checkIfCanPlaceShip(gridPlacementId);
+  const positionArray = getShipGridIndex(
+    e.target.id,
+    draggedShipNameWithPositionIndex,
+    draggedShip,
+    userBoard
+  );
+  //place ship
+  if (positionArray && !isOverlapping) {
+    positionArray.forEach((index) => {
+      const grid = userBoard[index].el;
+      grid.style.backgroundColor = draggedShip.color;
+      grid.classList.add("target");
+
+      //remove ship from ship container once placed
+    });
+    draggedShip.el.style.visibility = "hidden";
+    console.log(draggedShip.el);
+  }
+
+  //check if game can begin
 };
 
 const dragEnter = (e) => {
@@ -192,12 +250,20 @@ const dragEnter = (e) => {
 
 const dragLeave = (e) => {
   e.preventDefault();
-  const positionArray = getShipGridIndex(e.target.id);
+  const positionArray = getShipGridIndex(
+    e.target.id,
+    draggedShipNameWithPositionIndex,
+    draggedShip,
+    userBoard
+  );
   //highlight blocks that are being selected
   if (positionArray) {
     console.log(positionArray);
     positionArray.forEach((index) => {
-      board[index].el.style.backgroundColor = "red";
+      const grid = userBoard[index].el;
+      if (!(grid.classList && grid.classList.contains("target"))) {
+        userBoard[index].el.style.backgroundColor = colors.gridBackground;
+      }
     });
   }
 };
@@ -235,7 +301,7 @@ ships.forEach((ship) => {
   ship.el.addEventListener("dragstart", dragStart);
 });
 
-board.forEach((square) => {
+userBoard.forEach((square) => {
   square.el.addEventListener("dragstart", dragStart);
   square.el.addEventListener("dragover", dragOver);
   square.el.addEventListener("dragenter", dragEnter);
@@ -243,3 +309,29 @@ board.forEach((square) => {
   square.el.addEventListener("drop", dragDrop);
   square.el.addEventListener("dragend", dragEnd);
 });
+
+const placeCpuShip = () => {
+  const cpuShips = [...ships];
+  while (cpuShips.length !== 0) {
+    const randomShipIndex = _.random(0, cpuShips.length);
+    const ship = cpuShips[randomShipIndex];
+    const randomGridId = _.random(0, opponentBoard.length);
+    const positionArray = getShipGridIndex(
+      randomGridId,
+      _.random(0, ship.length),
+      ship
+    );
+
+    if (positionArray) {
+      positionArray.forEach((index) => {
+        const grid = opponentBoard[index].el;
+        grid.style.backgroundColor = ship.color;
+        grid.classList.add("target");
+
+        //remove ship from ship container once placed
+      });
+    }
+  }
+};
+
+// placeCpuShip();
