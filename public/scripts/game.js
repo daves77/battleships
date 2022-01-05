@@ -21,7 +21,7 @@ const ships = [
   },
 ];
 
-board = [];
+const board = [];
 
 const userGrid = document.getElementById("user-grid");
 
@@ -95,26 +95,17 @@ const generateBoard = (grid) => {
 generateShips(ships);
 generateBoard(userGrid);
 
-const rotateShips = () => {};
-
 let selectedShip;
-
 let draggedShip;
 let draggedShipNameWithPositionIndex;
-
-const selectShip = (e) => {};
 
 const dragStart = (e) => {
   const draggedShipIndex = e.target.id.substr(-1);
   draggedShip = ships[draggedShipIndex];
 };
 
-const dragOver = (e) => {
-  e.preventDefault();
-};
-
-const checkIfPlacmentWithinGrid = (gridId, start, end, isRotated) => {
-  console.log(gridId, start, end);
+//check if player ship placement is legal
+const checkIfPositionValid = (gridId, start, end, isRotated) => {
   const gridMetaData = board[gridId];
   let lowerLimit;
   let upperLimit;
@@ -134,54 +125,82 @@ const checkIfPlacmentWithinGrid = (gridId, start, end, isRotated) => {
   return true;
 };
 
-const dragDrop = (e) => {
-  console.log("dropped");
-  const lastShipDivId = draggedShip.el.lastElementChild.id;
-  const shipType = lastShipDivId.slice(0, -2);
-  const gridPlacementId = parseInt(e.target.id); //id of grid placed on
+const getShipPositioning = (gridPlacementId) => {
   const shipPositionIndex = parseInt(
     draggedShipNameWithPositionIndex.substr(-1)
   ); //position index of ship
 
-  let filledGridsIndex = [];
+  let startingPositionOnGrid;
+  let endingPositionOnGrid;
+  let positionArray = [];
   if (!draggedShip.rotated) {
     // board placement logic if ship is not rotated
-    const startingPositionOnGrid = gridPlacementId - shipPositionIndex;
-    const endingPositionOnGrid =
-      startingPositionOnGrid + draggedShip.length - 1;
-
-    const isLegalPlacment = checkIfPlacmentWithinGrid(
-      gridPlacementId,
-      startingPositionOnGrid,
-      endingPositionOnGrid,
-      draggedShip.rotated
-    );
-    console.log(isLegalPlacment);
+    startingPositionOnGrid = gridPlacementId - shipPositionIndex;
+    endingPositionOnGrid = startingPositionOnGrid + draggedShip.length - 1;
   } else {
     // board placment logic if ship is rotated
-    console.log(e.target.id);
-    console.log(parseInt(draggedShipNameWithPositionIndex.substr(-1)));
-    const startingPositionOnGrid =
+    startingPositionOnGrid =
       gridPlacementId - shipPositionIndex * boardMetaData.size;
-    const endingPositionOnGrid =
+    endingPositionOnGrid =
       startingPositionOnGrid + (draggedShip.length - 1) * boardMetaData.size;
-    console.log(startingPositionOnGrid, "start pos");
-    console.log(endingPositionOnGrid, "end pos");
-    const isLegalPlacment = checkIfPlacmentWithinGrid(
-      gridPlacementId,
-      startingPositionOnGrid,
-      endingPositionOnGrid,
-      draggedShip.rotated
-    );
-    console.log(isLegalPlacment);
   }
+  return { startingPositionOnGrid, endingPositionOnGrid };
+};
+
+const getShipGridIndex = (gridPlacementId) => {
+  const { startingPositionOnGrid, endingPositionOnGrid } =
+    getShipPositioning(gridPlacementId);
+
+  const positionIsValid = checkIfPositionValid(
+    gridPlacementId,
+    startingPositionOnGrid,
+    endingPositionOnGrid,
+    draggedShip.rotated
+  );
+
+  if (positionIsValid) {
+    if (draggedShip.rotated) {
+      return _.range(startingPositionOnGrid, endingPositionOnGrid + 1, 10);
+    }
+
+    return _.range(startingPositionOnGrid, endingPositionOnGrid + 1);
+  }
+
+  return null;
+};
+
+const dragOver = (e) => {
+  e.preventDefault();
+  const positionArray = getShipGridIndex(e.target.id);
+  //highlight blocks that are being selected
+  if (positionArray) {
+    console.log(positionArray);
+    positionArray.forEach((index) => {
+      board[index].el.style.backgroundColor = "blue";
+    });
+  }
+};
+
+const dragDrop = (e) => {
+  const gridPlacementId = e.target.id;
+  checkIfCanPlaceShip(gridPlacementId);
 };
 
 const dragEnter = (e) => {
   e.preventDefault();
 };
 
-const dragLeave = () => {};
+const dragLeave = (e) => {
+  e.preventDefault();
+  const positionArray = getShipGridIndex(e.target.id);
+  //highlight blocks that are being selected
+  if (positionArray) {
+    console.log(positionArray);
+    positionArray.forEach((index) => {
+      board[index].el.style.backgroundColor = "red";
+    });
+  }
+};
 
 const dragEnd = () => {};
 
@@ -205,13 +224,11 @@ ships.forEach((ship) => {
     // how do i rotate the ship
     const shipDiv = e.target.parentElement;
     const shipId = shipDiv.id.substr(-1);
-    console.log(shipId);
 
     const ship = ships[shipId];
     const rotate = ship.rotated ? "inline-flex" : "inline-block";
 
     ship.rotated = !ship.rotated;
-    console.log(rotate);
     shipDiv.style.display = rotate;
   });
 
