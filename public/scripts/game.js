@@ -70,6 +70,113 @@ const colors = {
 const userBoard = [];
 const opponentBoard = [];
 
+let gameMode = "";
+let playerNum = 0;
+let enemyReady = false;
+let allShipsPlaced = false;
+let shotFired = -1;
+let ready = false;
+
+const startMultiplayer = () => {
+  console.log("multiplayer");
+  const socket = io();
+
+  gameMode = "multiplayer";
+  socket.on("player-number", (num) => {
+    if (num === -1) {
+      console.log("server is full");
+    } else {
+      playerNum = parseInt(num);
+      if (playerNum === 1) currentPlayer = "enemy";
+
+      console.log(playerNum);
+
+      socket.emit("check-players");
+    }
+  });
+
+  socket.on("player-connection", (num) => {
+    console.log(`Player ${num} has connected`);
+    playerConnectedOrDisconnected(num);
+  });
+
+  const playerConnectedOrDisconnected = (num) => {
+    let player = `.p${parseInt(num) + 1} `;
+    console.log(player);
+    document
+      .querySelector(`${player} .connected span`)
+      .classList.toggle("green");
+    if (parseInt(num) === playerNum)
+      document.querySelector(player).style.fontWeight = "bold";
+  };
+
+  socket.on("enemy-ready", (num) => {
+    enemyReady = true;
+    playerReady(num);
+    if (ready) playGameMulti(socket);
+  });
+
+  socket.on("check-players", (players) => {
+    players.forEach((p, i) => {
+      if (p.connected) playerConnectedOrDisconnected(i);
+      if (p.ready) {
+        playerReady(i);
+        if (i !== playerReady) enemyReady = true;
+      }
+    });
+  });
+
+  const startButton = document.getElementById("start-button");
+  startButton.addEventListener("click", () => {
+    if (allShipsPlaced) playGameMulti(socket);
+    else sendMessage("Please place all ships");
+  });
+
+  opponentBoard.forEach((grid) => {
+    if (currentPlayer === "user" && ready && enemyReady) {
+      shotFired = grid.el.id;
+      socket.emit("fire", shotFired);
+    }
+  });
+
+  socket.on("fire", (id) => {
+    revealGrid(id, opponentShips);
+    const grid = userBoard[id];
+    socket.emit("fire-reply", grid.el.classList);
+    playGameMulti(socket);
+  });
+
+  socket.on("fire-reply", (classList) => {
+    playGameMulti(socket);
+  });
+};
+
+document
+  .getElementById("multiplayer-button")
+  .addEventListener("click", startMultiplayer);
+
+const playGameMulti = (socket) => {
+  if (!ready) {
+    socket.emit("player-ready");
+    ready = true;
+    playerReady(playerNum);
+  }
+
+  if (enemyReady) {
+    if (currentPlayer === "user") {
+      sendMessage("your turn");
+    }
+    if (currentPlayer === "ememy") {
+      sendMessage("enemy's turn");
+    }
+  }
+};
+
+const playerReady = (num) => {
+  let player = `.p${parseInt(num) + 1}`;
+  document.querySelector(`${player} .ready .span`).classList.toggle("green");
+};
+
 const userGrid = document.getElementById("user-grid");
 const opponentGrid = document.getElementById("opponent-grid");
 const messageOutput = document.getElementById("message-output");
@@ -278,10 +385,10 @@ const dragDrop = (e) => {
     const playerReady = ships.every((ship) => ship.placed);
 
     if (playerReady) {
-      startGame();
       const hud = document.getElementById("hud");
       const shipContainer = document.getElementById("ships-container");
       console.log(shipContainer);
+      allShipsPlaced = true;
       // hud.removeChild(shipContainer);
       // document.
     }

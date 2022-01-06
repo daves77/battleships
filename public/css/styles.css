@@ -12,6 +12,28 @@
 }
 
 #ships-container {
-  background-color: black;
   padding: 2rem;
+}
+
+.connected,
+.ready {
+  font-weight: normal;
+}
+
+.connected span,
+.ready span {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  background: red;
+  border-radius: 50%;
+  margin-left: 0.25rem;
+}
+
+span.green {
+  background: green;
+}
+
+.player {
+  color: "#39FF14";
 }

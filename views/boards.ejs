@@ -11,9 +11,28 @@
   <body class="bg-gray-900">
     <div class="max-w-6xl mx-auto">
       <div id="board" class="p-5">
+        <button id="multiplayer-button">Multiplayer</button>
         <div class="bg-gray-900 flex justify-between align-middle">
-          <div id="user-grid" class="flex flex-wrap" style="width: 400px"></div>
-          <div id="opponent-grid" class=""></div>
+          <div>
+            <div class="player p1 mb-4" style="color: #39ff14">
+              <div class="text-xl">Player 1</div>
+              <div class="connected text-sm">Connected <span></span></div>
+              <div class="ready text-sm">Ready <span></span></div>
+            </div>
+            <div
+              id="user-grid"
+              class="flex flex-wrap"
+              style="width: 400px"
+            ></div>
+          </div>
+          <div>
+            <div class="player p2 mb-4" style="color: #39ff14">
+              <div class="text-xl">Player 2</div>
+              <div class="connected text-sm">Connected <span></span></div>
+              <div class="ready text-sm">Ready <span></span></div>
+            </div>
+            <div id="opponent-grid" class=""></div>
+          </div>
         </div>
 
         <div class="bg-gray-900">
@@ -23,12 +42,18 @@
             style="color: #39ff14"
           ></div>
           <div id="hud" class="">
-            <div id="ships-container" class="ships flex bg-gray-900"></div>
+            <div
+              id="ships-container"
+              class="ships flex bg-gray-900 justify-center"
+            ></div>
+            <button id="start-button">Start</button>
           </div>
         </div>
       </div>
     </div>
+
     <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <script src="scripts/game.js"></script>
   </body>
 </html>
