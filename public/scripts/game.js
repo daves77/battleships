@@ -28,36 +28,36 @@ const ships = [
     destroyed: false,
     el: null,
   },
-  {
-    name: "speedboat",
-    length: 3,
-    color: "gold",
-    rotated: false,
-    placed: false,
-    hitCount: 0,
-    destroyed: false,
-    el: null,
-  },
-  {
-    name: "cruiser",
-    length: 3,
-    color: "blue",
-    rotated: false,
-    placed: false,
-    hitCount: 0,
-    destroyed: false,
-    el: null,
-  },
-  {
-    name: "submarine",
-    length: 4,
-    color: "purple",
-    rotated: false,
-    placed: false,
-    hitCount: 0,
-    destroyed: false,
-    el: null,
-  },
+  // {
+  //   name: "speedboat",
+  //   length: 3,
+  //   color: "gold",
+  //   rotated: false,
+  //   placed: false,
+  //   hitCount: 0,
+  //   destroyed: false,
+  //   el: null,
+  // },
+  // {
+  //   name: "cruiser",
+  //   length: 3,
+  //   color: "blue",
+  //   rotated: false,
+  //   placed: false,
+  //   hitCount: 0,
+  //   destroyed: false,
+  //   el: null,
+  // },
+  // {
+  //   name: "submarine",
+  //   length: 4,
+  //   color: "purple",
+  //   rotated: false,
+  //   placed: false,
+  //   hitCount: 0,
+  //   destroyed: false,
+  //   el: null,
+  // },
 ];
 
 const opponentShips = JSON.parse(JSON.stringify(ships));
@@ -77,8 +77,13 @@ let allShipsPlaced = false;
 let shotFired = -1;
 let ready = false;
 
+const startButton = document.getElementById("start-button");
+
 const startMultiplayer = () => {
   console.log("multiplayer");
+  generateShips(ships);
+  initGameLogic();
+
   const socket = io();
 
   gameMode = "multiplayer";
@@ -126,7 +131,6 @@ const startMultiplayer = () => {
     });
   });
 
-  const startButton = document.getElementById("start-button");
   startButton.addEventListener("click", () => {
     if (allShipsPlaced) playGameMulti(socket);
     else sendMessage("Please place all ships");
@@ -254,7 +258,6 @@ const generateBoard = (grid, board) => {
   }
 };
 
-generateShips(ships);
 generateBoard(userGrid, userBoard);
 generateBoard(opponentGrid, opponentBoard);
 
@@ -422,47 +425,49 @@ const dragLeave = (e) => {
 
 const dragEnd = () => {};
 
-ships.forEach((ship) => {
-  ship.el.addEventListener("mousedown", (e) => {
-    draggedShipNameWithPositionIndex = e.target.id;
+const initGameLogic = () => {
+  ships.forEach((ship) => {
+    ship.el.addEventListener("mousedown", (e) => {
+      draggedShipNameWithPositionIndex = e.target.id;
+    });
+
+    ship.el.addEventListener("mouseover", (e) => {
+      const shipDiv = e.target.parentElement;
+      console.log(shipDiv);
+      selectedShip = shipDiv.style.outline = "2px solid blue";
+      shipDiv.style.outlineOffset = "2px";
+    });
+
+    ship.el.addEventListener("mouseout", (e) => {
+      const shipDiv = e.target.parentElement;
+      shipDiv.style.outline = "";
+    });
+
+    ship.el.addEventListener("click", (e) => {
+      console.log("clicked");
+      // how do i rotate the ship
+      const shipDiv = e.target.parentElement;
+      const shipId = shipDiv.id.substr(-1);
+
+      const ship = ships[shipId];
+      const rotate = ship.rotated ? "inline-flex" : "inline-block";
+
+      ship.rotated = !ship.rotated;
+      shipDiv.style.display = rotate;
+    });
+
+    ship.el.addEventListener("dragstart", dragStart);
   });
 
-  ship.el.addEventListener("mouseover", (e) => {
-    const shipDiv = e.target.parentElement;
-    console.log(shipDiv);
-    selectedShip = shipDiv.style.outline = "2px solid blue";
-    shipDiv.style.outlineOffset = "2px";
+  userBoard.forEach((square) => {
+    square.el.addEventListener("dragstart", dragStart);
+    square.el.addEventListener("dragover", dragOver);
+    square.el.addEventListener("dragenter", dragEnter);
+    square.el.addEventListener("dragleave", dragLeave);
+    square.el.addEventListener("drop", dragDrop);
+    square.el.addEventListener("dragend", dragEnd);
   });
-
-  ship.el.addEventListener("mouseout", (e) => {
-    const shipDiv = e.target.parentElement;
-    shipDiv.style.outline = "";
-  });
-
-  ship.el.addEventListener("click", (e) => {
-    console.log("clicked");
-    // how do i rotate the ship
-    const shipDiv = e.target.parentElement;
-    const shipId = shipDiv.id.substr(-1);
-
-    const ship = ships[shipId];
-    const rotate = ship.rotated ? "inline-flex" : "inline-block";
-
-    ship.rotated = !ship.rotated;
-    shipDiv.style.display = rotate;
-  });
-
-  ship.el.addEventListener("dragstart", dragStart);
-});
-
-userBoard.forEach((square) => {
-  square.el.addEventListener("dragstart", dragStart);
-  square.el.addEventListener("dragover", dragOver);
-  square.el.addEventListener("dragenter", dragEnter);
-  square.el.addEventListener("dragleave", dragLeave);
-  square.el.addEventListener("drop", dragDrop);
-  square.el.addEventListener("dragend", dragEnd);
-});
+};
 
 const placeShips = (ships) => {
   const randomShipIndex = _.random(0, ships.length - 1);
@@ -502,8 +507,11 @@ const placeShips = (ships) => {
   }
 };
 
-const startGame = () => {
-  placeShips(JSON.parse(JSON.stringify(opponentShips)));
+const startSinglePlayer = () => {
+  sendMessage("Starting single player mode");
+  gameMode = "singlePlayer";
+  generateShips(ships);
+  initGameLogic();
   opponentBoard.forEach((grid) => {
     grid.el.style.cursor = "pointer";
     grid.el.addEventListener("click", (e) => {
@@ -511,10 +519,21 @@ const startGame = () => {
     });
   });
   currentPlayer = "player";
-  playGame();
+  startButton.addEventListener("click", () => {
+    if (!allShipsPlaced) {
+      sendMessage("Please place all your ships first");
+    } else {
+      playGameSingle();
+      placeShips(JSON.parse(JSON.stringify(opponentShips)));
+    }
+  });
 };
 
-const playGame = () => {
+document
+  .getElementById("singleplayer-button")
+  .addEventListener("click", startSinglePlayer);
+
+const playGameSingle = () => {
   sendMessage(`${currentPlayer}'s turn`);
   switch (currentPlayer) {
     case "player":
@@ -565,7 +584,8 @@ const revealGrid = (gridEl, ships) => {
     endGame();
   } else {
     currentPlayer = players.filter((player) => player !== currentPlayer)[0];
-    playGame();
+    console.log(currentPlayer, "current player");
+    if (gameMode === "singlePlayer") playGameSingle();
   }
 };
 
