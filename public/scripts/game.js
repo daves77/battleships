@@ -28,36 +28,36 @@ const ships = [
     destroyed: false,
     el: null,
   },
-  {
-    name: "speedboat",
-    length: 3,
-    color: "gold",
-    rotated: false,
-    placed: false,
-    hitCount: 0,
-    destroyed: false,
-    el: null,
-  },
-  {
-    name: "cruiser",
-    length: 3,
-    color: "blue",
-    rotated: false,
-    placed: false,
-    hitCount: 0,
-    destroyed: false,
-    el: null,
-  },
-  {
-    name: "submarine",
-    length: 4,
-    color: "purple",
-    rotated: false,
-    placed: false,
-    hitCount: 0,
-    destroyed: false,
-    el: null,
-  },
+  // {
+  //   name: "speedboat",
+  //   length: 3,
+  //   color: "gold",
+  //   rotated: false,
+  //   placed: false,
+  //   hitCount: 0,
+  //   destroyed: false,
+  //   el: null,
+  // },
+  // {
+  //   name: "cruiser",
+  //   length: 3,
+  //   color: "blue",
+  //   rotated: false,
+  //   placed: false,
+  //   hitCount: 0,
+  //   destroyed: false,
+  //   el: null,
+  // },
+  // {
+  //   name: "submarine",
+  //   length: 4,
+  //   color: "purple",
+  //   rotated: false,
+  //   placed: false,
+  //   hitCount: 0,
+  //   destroyed: false,
+  //   el: null,
+  // },
 ];
 
 const opponentShips = JSON.parse(JSON.stringify(ships));
@@ -70,29 +70,29 @@ const colors = {
 const userBoard = [];
 const opponentBoard = [];
 
-let gameMode = "";
+let multiplayer = false;
 let playerNum = 0;
 let enemyReady = false;
-let allShipsPlaced = false;
+let isPlayerReady = false;
 let shotFired = -1;
 let ready = false;
 
-const startButton = document.getElementById("start-button");
-
+let socket;
 const startMultiplayer = () => {
-  console.log("multiplayer");
   generateShips(ships);
   initGameLogic();
 
-  const socket = io();
+  socket = io();
 
-  gameMode = "multiplayer";
+  multiplayer = true;
+
   socket.on("player-number", (num) => {
+    console.log(typeof num);
     if (num === -1) {
       console.log("server is full");
     } else {
       playerNum = parseInt(num);
-      if (playerNum === 1) currentPlayer = "enemy";
+      if (playerNum === 1) currentPlayer = "opponent";
 
       socket.emit("check-players");
     }
@@ -105,7 +105,6 @@ const startMultiplayer = () => {
 
   const playerConnectedOrDisconnected = (num) => {
     let player = `.p${parseInt(num) + 1} `;
-    console.log(player);
     document
       .querySelector(`${player} .connected span`)
       .classList.toggle("green");
@@ -119,9 +118,13 @@ const startMultiplayer = () => {
 
   socket.on("enemy-ready", (num) => {
     enemyReady = true;
-    playerReady(num);
+    setPlayerReady(num);
     if (ready) {
-      sendMessage("Both players are ready, starting game");
+      sendMessage(
+        enemyReady
+          ? "Both players ready, starting game now"
+          : "Opponent is not yet ready! "
+      );
       playGameMulti(socket);
     }
   });
@@ -130,16 +133,17 @@ const startMultiplayer = () => {
     players.forEach((p, i) => {
       if (p.connected) playerConnectedOrDisconnected(i);
       if (p.ready) {
-        playerReady(i);
-        if (i !== playerReady) enemyReady = true;
+        setPlayerReady(i);
+        if (i !== playerNum) enemyReady = true;
       }
     });
   });
 
   startButton.addEventListener("click", () => {
-    if (allShipsPlaced) {
-      sendMessage("Both players are ready, starting game");
-      playGameMulti(socket);
+    if (isPlayerReady) {
+      if (enemyReady) {
+        playGameMulti(socket);
+      }
     } else sendMessage("Please place all ships");
   });
 
@@ -168,11 +172,10 @@ document
 
 const playGameMulti = (socket) => {
   initGameLogic();
-  console.log("initted");
   if (!ready) {
     socket.emit("player-ready");
     ready = true;
-    playerReady(playerNum);
+    setPlayerReady(playerNum);
   }
 
   if (enemyReady) {
@@ -185,7 +188,7 @@ const playGameMulti = (socket) => {
   }
 };
 
-const playerReady = (num) => {
+const setPlayerReady = (num) => {
   let player = `.p${parseInt(num) + 1}`;
   document.querySelector(`${player} .ready span`).classList.toggle("green");
 };
@@ -394,15 +397,16 @@ const dragDrop = (e) => {
     draggedShip.placed = true;
 
     //check if all shipped have been placed
-    const playerReady = ships.every((ship) => ship.placed);
+    isPlayerReady = ships.every((ship) => ship.placed);
 
-    if (playerReady) {
-      const hud = document.getElementById("hud");
+    if (isPlayerReady) {
       const shipContainer = document.getElementById("ships-container");
-      console.log(shipContainer);
-      allShipsPlaced = true;
-      // hud.removeChild(shipContainer);
-      // document.
+
+      if (multiplayer) {
+      } else {
+        playGameSingle();
+        placeShips(JSON.parse(JSON.stringify(opponentShips)));
+      }
     }
   }
 
@@ -485,6 +489,7 @@ const initGameLogic = () => {
   });
 };
 
+//algorithim that places ships legally within the grid for the cpu
 const placeShips = (ships) => {
   const randomShipIndex = _.random(0, ships.length - 1);
   const cpuShip = ships[randomShipIndex];
@@ -525,19 +530,10 @@ const placeShips = (ships) => {
 
 const startSinglePlayer = () => {
   sendMessage("Starting single player mode");
-  gameMode = "singlePlayer";
   generateShips(ships);
   initGameLogic();
 
   currentPlayer = "player";
-  startButton.addEventListener("click", () => {
-    if (!allShipsPlaced) {
-      sendMessage("Please place all your ships first");
-    } else {
-      playGameSingle();
-      placeShips(JSON.parse(JSON.stringify(opponentShips)));
-    }
-  });
 };
 
 document
@@ -596,7 +592,7 @@ const revealGrid = (gridEl, ships) => {
   } else {
     currentPlayer = players.filter((player) => player !== currentPlayer)[0];
     console.log(currentPlayer, "current player");
-    if (gameMode === "singlePlayer") playGameSingle();
+    if (!multiplayer) playGameSingle();
   }
 };
 
