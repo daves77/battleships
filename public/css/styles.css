@@ -1,5 +1,9 @@
 .exploded {
-  background-color: red;
+  background-color: red !important;
+}
+
+.missed {
+  background-color: grey !important;
 }
 
 #message-output {

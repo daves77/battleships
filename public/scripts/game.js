@@ -60,7 +60,7 @@ const ships = [
   // },
 ];
 
-const opponentShips = JSON.parse(JSON.stringify(ships));
+let opponentShips = JSON.parse(JSON.stringify(ships));
 
 const colors = {
   gridBackground: "#111827",
@@ -72,9 +72,8 @@ const opponentBoard = [];
 
 let multiplayer = false;
 let playerNum = 0;
-let enemyReady = false;
+let opponentReady = false;
 let isPlayerReady = false;
-let shotFired = -1;
 let ready = false;
 
 let socket;
@@ -116,12 +115,13 @@ const startMultiplayer = () => {
     }
   };
 
-  socket.on("enemy-ready", (num) => {
-    enemyReady = true;
+  socket.on("opponent-ready", (num, ships) => {
+    opponentReady = true;
+    opponentShips = ships;
     setPlayerReady(num);
     if (ready) {
       sendMessage(
-        enemyReady
+        opponentReady
           ? "Both players ready, starting game now"
           : "Opponent is not yet ready! "
       );
@@ -134,34 +134,28 @@ const startMultiplayer = () => {
       if (p.connected) playerConnectedOrDisconnected(i);
       if (p.ready) {
         setPlayerReady(i);
-        if (i !== playerNum) enemyReady = true;
+        if (i !== playerNum) opponentReady = true;
       }
     });
   });
 
-  startButton.addEventListener("click", () => {
-    if (isPlayerReady) {
-      if (enemyReady) {
-        playGameMulti(socket);
-      }
-    } else sendMessage("Please place all ships");
-  });
-
-  opponentBoard.forEach((grid) => {
-    if (currentPlayer === "user" && ready && enemyReady) {
-      shotFired = grid.el.id;
-      socket.emit("fire", shotFired);
-    }
-  });
+  // opponentBoard.forEach((grid) => {
+  //   if (currentPlayer === "user" && ready && opponentReady) {
+  //     shotFired = grid.el.id;
+  //     socket.emit("fire", shotFired);
+  //   }
+  // });
 
   socket.on("fire", (id) => {
-    revealGrid(id, opponentShips);
+    revealGrid(grid.el.classList, ships);
+    playGameMulti(socket);
     const grid = userBoard[id];
     socket.emit("fire-reply", grid.el.classList);
     playGameMulti(socket);
   });
 
   socket.on("fire-reply", (classList) => {
+    revealGrid(grid.el.classList, opponentShips);
     playGameMulti(socket);
   });
 };
@@ -171,19 +165,19 @@ document
   .addEventListener("click", startMultiplayer);
 
 const playGameMulti = (socket) => {
-  initGameLogic();
+  initGameLogic(); // why is this here?
   if (!ready) {
     socket.emit("player-ready");
     ready = true;
     setPlayerReady(playerNum);
   }
 
-  if (enemyReady) {
+  if (opponentReady) {
     if (currentPlayer === "user") {
       sendMessage("your turn");
     }
     if (currentPlayer === "ememy") {
-      sendMessage("enemy's turn");
+      sendMessage("opponent's turn");
     }
   }
 };
@@ -400,9 +394,12 @@ const dragDrop = (e) => {
     isPlayerReady = ships.every((ship) => ship.placed);
 
     if (isPlayerReady) {
-      const shipContainer = document.getElementById("ships-container");
-
       if (multiplayer) {
+        socket.emit("player-ready", playerNum);
+        ready = true;
+        setPlayerReady(playerNum);
+        if (opponentReady) playGameMulti(socket);
+        else sendMessage("opponent is not yet ready");
       } else {
         playGameSingle();
         placeShips(JSON.parse(JSON.stringify(opponentShips)));
@@ -484,7 +481,8 @@ const initGameLogic = () => {
   opponentBoard.forEach((grid) => {
     grid.el.style.cursor = "pointer";
     grid.el.addEventListener("click", (e) => {
-      revealGrid(grid.el, opponentShips);
+      revealGrid(grid.el.classList, opponentShips);
+      if (multiplayer) socket.emit("fire", grid.el.id);
     });
   });
 };
@@ -551,7 +549,7 @@ const playGameSingle = () => {
       const randomGridIndex = _.random(0, 99);
       const grid = userBoard[randomGridIndex];
       setTimeout(() => {
-        revealGrid(grid.el, ships);
+        revealGrid(grid.el.classList, ships);
       }, 200);
       return;
     default:
@@ -569,20 +567,22 @@ const checkForWinner = (ships) => {
   return null;
 };
 
-const revealGrid = (gridEl, ships) => {
-  if (!gridEl.classList.contains("exploded")) {
+//probably going to have to change how this works fundametally if i wnt it to work for both
+//single player and multiplayer
+const revealGrid = (classList, ships) => {
+  if (!classList.contains("exploded")) {
     ships.forEach((ship, index) => {
-      if (gridEl.classList.contains(ship.name)) ship.hitCount++;
+      if (classList.contains(ship.name)) ship.hitCount++;
       if (ship.hitCount === ship.length) ship.destroyed = true;
     });
   }
 
-  if (gridEl.classList.contains("target")) {
-    gridEl.classList.add("exploded");
-    gridEl.style.backgroundColor = "red";
+  if (classList.contains("target")) {
+    classList.add("exploded");
+    // gridEl.style.backgroundColor = "red";
   } else {
-    gridEl.classList.add("missed");
-    gridEl.style.backgroundColor = "grey";
+    classList.add("missed");
+    // gridEl.style.backgroundColor = "grey";
   }
 
   const winner = checkForWinner(ships);

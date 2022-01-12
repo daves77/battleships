@@ -1,4 +1,5 @@
 module.exports = (io) => {
+  //probably need state such that im recording game state? should i use a database here?
   const connections = [null, null];
   io.on("connection", (socket) => {
     console.log("new ws connection");
@@ -26,8 +27,9 @@ module.exports = (io) => {
       socket.broadcast.emit("player-connection", playerIndex);
     });
 
-    socket.on("player-ready", () => {
-      socket.broadcast.emit("enemy-ready", playerIndex);
+    socket.on("player-ready", (playerIndex, ships) => {
+      console.log(`${playerIndex} is ready`);
+      socket.broadcast.emit("opponent-ready", playerIndex, ships);
       connections[playerIndex] = true;
     });
 
