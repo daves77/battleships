@@ -76,6 +76,7 @@ let opponentReady = false;
 let shotFired = -1;
 let isPlayerReady = false;
 let ready = false;
+let firstInit = true;
 
 let socket;
 const startMultiplayer = () => {
@@ -168,6 +169,7 @@ const startMultiplayer = () => {
   });
 
   socket.on("fire-reply", (classList) => {
+    console.log("fire reply");
     revealGrid(classList, opponentShips, "opponent");
     playGameMulti(socket);
   });
@@ -178,13 +180,6 @@ document
   .addEventListener("click", startMultiplayer);
 
 const playGameMulti = (socket) => {
-  initGameLogic(); // why is this here?
-  // if (!ready) {
-  //   socket.emit("player-ready");
-  //   ready = true;
-  //   setPlayerReady(playerNum);
-  // }
-
   if (opponentReady) {
     if (currentPlayer === "user") {
       sendMessage("your turn");
@@ -498,8 +493,9 @@ const initGameLogic = () => {
   opponentBoard.forEach((grid) => {
     grid.el.style.cursor = "pointer";
     grid.el.addEventListener("click", (e) => {
-      revealGrid(grid.el.classList, opponentShips, "opponent");
-      if (multiplayer) socket.emit("fire", grid.el.id);
+      shotFired = e.target.id.split("-")[1];
+      if (multiplayer) socket.emit("fire", grid.el.id.split("-")[1]);
+      else revealGrid(grid.el.classList, opponentShips, "opponent");
     });
   });
 };
@@ -590,6 +586,7 @@ const revealGrid = (classList, ships, role) => {
   // because sometimes i get a object back instead, i need to reformat into a standard arr format
   const grid = document.getElementById(`${role}-${shotFired}`);
   const arr = Object.values(classList);
+  console.log(arr);
   if (!arr.includes("exploded")) {
     ships.forEach((ship, index) => {
       if (arr.includes(ship.name)) ship.hitCount++;
