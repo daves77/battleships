@@ -43,6 +43,15 @@ module.exports = (io) => {
       socket.emit("check-players", players);
     });
 
+    socket.on("get-ships", () => {
+      console.log("getting ships");
+      socket.broadcast.emit("send-ships");
+    });
+
+    socket.on("sending-ships", (ships) => {
+      socket.broadcast.emit("receive-ships", ships);
+    });
+
     socket.on("fire", (id) => {
       console.log(`shot fired from ${playerIndex}`, id);
 

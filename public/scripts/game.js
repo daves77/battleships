@@ -18,16 +18,16 @@ const ships = [
     destroyed: false,
     el: null,
   },
-  {
-    name: "bumboat",
-    length: 2,
-    color: "green",
-    rotated: false,
-    placed: false,
-    hitCount: 0,
-    destroyed: false,
-    el: null,
-  },
+  // {
+  //   name: "bumboat",
+  //   length: 2,
+  //   color: "green",
+  //   rotated: false,
+  //   placed: false,
+  //   hitCount: 0,
+  //   destroyed: false,
+  //   el: null,
+  // },
   // {
   //   name: "speedboat",
   //   length: 3,
@@ -92,7 +92,7 @@ const startMultiplayer = () => {
     } else {
       playerNum = parseInt(num);
       if (playerNum === 1) currentPlayer = "opponent";
-
+      console.log("checking players");
       socket.emit("check-players");
     }
   });
@@ -116,6 +116,7 @@ const startMultiplayer = () => {
   };
 
   socket.on("opponent-ready", (num, ships) => {
+    console.log("opponent ready", ships);
     opponentReady = true;
     opponentShips = ships;
     setPlayerReady(num);
@@ -129,12 +130,29 @@ const startMultiplayer = () => {
     }
   });
 
+  socket.on("send-ships", () => {
+    console.log("sending ships");
+    socket.emit("sending-ships", ships);
+  });
+
+  socket.on("receive-ships", (ships) => {
+    console.log("received ships", ships);
+    opponentShips = ships;
+    sendMessage(
+      "opponent is already ready, place your ships to start the game"
+    );
+  });
+
   socket.on("check-players", (players) => {
     players.forEach((p, i) => {
       if (p.connected) playerConnectedOrDisconnected(i);
       if (p.ready) {
         setPlayerReady(i);
-        if (i !== playerNum) opponentReady = true;
+        if (i !== playerNum) {
+          opponentReady = true;
+          console.log("i should be getting ships here");
+          socket.emit("get-ships");
+        }
       }
     });
   });
@@ -166,11 +184,11 @@ document
 
 const playGameMulti = (socket) => {
   initGameLogic(); // why is this here?
-  if (!ready) {
-    socket.emit("player-ready");
-    ready = true;
-    setPlayerReady(playerNum);
-  }
+  // if (!ready) {
+  //   socket.emit("player-ready");
+  //   ready = true;
+  //   setPlayerReady(playerNum);
+  // }
 
   if (opponentReady) {
     if (currentPlayer === "user") {
@@ -395,7 +413,7 @@ const dragDrop = (e) => {
 
     if (isPlayerReady) {
       if (multiplayer) {
-        socket.emit("player-ready", playerNum);
+        socket.emit("player-ready", playerNum, ships);
         ready = true;
         setPlayerReady(playerNum);
         if (opponentReady) playGameMulti(socket);
