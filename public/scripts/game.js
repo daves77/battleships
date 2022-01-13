@@ -165,15 +165,15 @@ const startMultiplayer = () => {
   // });
 
   socket.on("fire", (id) => {
-    revealGrid(grid.el.classList, ships);
     playGameMulti(socket);
     const grid = userBoard[id];
+    revealGrid(grid.el.classList, ships);
     socket.emit("fire-reply", grid.el.classList);
     playGameMulti(socket);
   });
 
   socket.on("fire-reply", (classList) => {
-    revealGrid(grid.el.classList, opponentShips);
+    revealGrid(classList, opponentShips);
     playGameMulti(socket);
   });
 };
@@ -416,8 +416,10 @@ const dragDrop = (e) => {
         socket.emit("player-ready", playerNum, ships);
         ready = true;
         setPlayerReady(playerNum);
-        if (opponentReady) playGameMulti(socket);
-        else sendMessage("opponent is not yet ready");
+        if (opponentReady) {
+          playGameMulti(socket);
+          sendMessage("BOth players are ready starting game now");
+        } else sendMessage("opponent is not yet ready");
       } else {
         playGameSingle();
         placeShips(JSON.parse(JSON.stringify(opponentShips)));
