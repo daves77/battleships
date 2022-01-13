@@ -73,6 +73,7 @@ const opponentBoard = [];
 let multiplayer = false;
 let playerNum = 0;
 let opponentReady = false;
+let shotFired = -1;
 let isPlayerReady = false;
 let ready = false;
 
@@ -157,23 +158,17 @@ const startMultiplayer = () => {
     });
   });
 
-  // opponentBoard.forEach((grid) => {
-  //   if (currentPlayer === "user" && ready && opponentReady) {
-  //     shotFired = grid.el.id;
-  //     socket.emit("fire", shotFired);
-  //   }
-  // });
-
   socket.on("fire", (id) => {
     playGameMulti(socket);
+    shotFired = id;
     const grid = userBoard[id];
-    revealGrid(grid.el.classList, ships);
+    revealGrid(grid.el.classList, ships, "player");
     socket.emit("fire-reply", grid.el.classList);
     playGameMulti(socket);
   });
 
   socket.on("fire-reply", (classList) => {
-    revealGrid(classList, opponentShips);
+    revealGrid(classList, opponentShips, "opponent");
     playGameMulti(socket);
   });
 };
@@ -250,7 +245,7 @@ const generateShips = (ships) => {
 };
 
 // generates the playing board for each battleship game
-const generateBoard = (grid, board) => {
+const generateBoard = (grid, board, role) => {
   idCounter = 0;
   for (let i = 0; i < boardMetaData.size; i++) {
     const gridRow = document.createElement("div");
@@ -265,7 +260,7 @@ const generateBoard = (grid, board) => {
         column: j,
         el: squareGrid,
       };
-      squareGrid.id = squareGridMetaData.id;
+      squareGrid.id = `${role}-${squareGridMetaData.id}`;
       squareGrid.style.backgroundColor = colors.gridBackground;
       squareGrid.style.minWidth = `${
         boardMetaData.width / boardMetaData.size
@@ -282,8 +277,8 @@ const generateBoard = (grid, board) => {
   }
 };
 
-generateBoard(userGrid, userBoard);
-generateBoard(opponentGrid, opponentBoard);
+generateBoard(userGrid, userBoard, "player");
+generateBoard(opponentGrid, opponentBoard, "opponent");
 
 let selectedShip;
 let draggedShip;
@@ -297,7 +292,10 @@ const dragStart = (e) => {
 
 //check if player ship placement is legal
 const checkIfPositionValid = (gridId, start, end, isRotated, board) => {
-  const gridMetaData = board[gridId];
+  console.log(gridId);
+  const id = gridId.split("-")[1];
+  console.log(id);
+  const gridMetaData = board[id];
   let lowerLimit;
   let upperLimit;
 
@@ -318,18 +316,17 @@ const checkIfPositionValid = (gridId, start, end, isRotated, board) => {
 
 const getShipPositioning = (gridPlacementId, shipPositioningIndex, ship) => {
   const shipPositionIndex = parseInt(shipPositioningIndex.substr(-1)); //position index of ship
-
+  const id = gridPlacementId.split("-")[1];
   let startingPositionOnGrid;
   let endingPositionOnGrid;
   let positionArray = [];
   if (!ship.rotated) {
     // board placement logic if ship is not rotated
-    startingPositionOnGrid = gridPlacementId - shipPositionIndex;
+    startingPositionOnGrid = id - shipPositionIndex;
     endingPositionOnGrid = startingPositionOnGrid + ship.length - 1;
   } else {
     // board placment logic if ship is rotated
-    startingPositionOnGrid =
-      gridPlacementId - shipPositionIndex * boardMetaData.size;
+    startingPositionOnGrid = id - shipPositionIndex * boardMetaData.size;
     endingPositionOnGrid =
       startingPositionOnGrid + (ship.length - 1) * boardMetaData.size;
   }
@@ -359,7 +356,6 @@ const getShipGridIndex = (
     if (ship.rotated) {
       return _.range(startingPositionOnGrid, endingPositionOnGrid + 1, 10);
     }
-
     return _.range(startingPositionOnGrid, endingPositionOnGrid + 1);
   }
 
@@ -374,6 +370,7 @@ const dragOver = (e) => {
     draggedShip,
     userBoard
   );
+  console.log(positionArray);
   //highlight blocks that are being selected
   if (positionArray) {
     isOverlapping = positionArray.some((index) =>
@@ -501,7 +498,7 @@ const initGameLogic = () => {
   opponentBoard.forEach((grid) => {
     grid.el.style.cursor = "pointer";
     grid.el.addEventListener("click", (e) => {
-      revealGrid(grid.el.classList, opponentShips);
+      revealGrid(grid.el.classList, opponentShips, "opponent");
       if (multiplayer) socket.emit("fire", grid.el.id);
     });
   });
@@ -514,7 +511,7 @@ const placeShips = (ships) => {
   const randomGridId = _.random(0, opponentBoard.length - 1);
   cpuShip.rotated = _.random(1) === 1 ? true : false;
   const positionArray = getShipGridIndex(
-    randomGridId,
+    `opponent-${randomGridId}`,
     "1",
     cpuShip,
     opponentBoard
@@ -569,7 +566,7 @@ const playGameSingle = () => {
       const randomGridIndex = _.random(0, 99);
       const grid = userBoard[randomGridIndex];
       setTimeout(() => {
-        revealGrid(grid.el.classList, ships);
+        revealGrid(grid.el.classList, ships, "player");
       }, 200);
       return;
     default:
@@ -589,20 +586,23 @@ const checkForWinner = (ships) => {
 
 //probably going to have to change how this works fundametally if i wnt it to work for both
 //single player and multiplayer
-const revealGrid = (classList, ships) => {
-  if (!classList.contains("exploded")) {
+const revealGrid = (classList, ships, role) => {
+  // because sometimes i get a object back instead, i need to reformat into a standard arr format
+  const grid = document.getElementById(`${role}-${shotFired}`);
+  const arr = Object.values(classList);
+  if (!arr.includes("exploded")) {
     ships.forEach((ship, index) => {
-      if (classList.contains(ship.name)) ship.hitCount++;
+      if (arr.includes(ship.name)) ship.hitCount++;
       if (ship.hitCount === ship.length) ship.destroyed = true;
     });
   }
 
-  if (classList.contains("target")) {
-    classList.add("exploded");
-    // gridEl.style.backgroundColor = "red";
+  if (arr.includes("target")) {
+    grid.classList.add("exploded");
+    grid.style.backgroundColor = "red";
   } else {
-    classList.add("missed");
-    // gridEl.style.backgroundColor = "grey";
+    grid.classList.add("missed");
+    grid.style.backgroundColor = "grey";
   }
 
   const winner = checkForWinner(ships);

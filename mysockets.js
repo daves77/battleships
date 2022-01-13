@@ -54,14 +54,12 @@ module.exports = (io) => {
 
     socket.on("fire", (id) => {
       console.log(`shot fired from ${playerIndex}`, id);
-
       socket.broadcast.emit("fire", id);
     });
 
-    socket.on("fire-reply", (square) => {
-      console.log(square);
-
-      socket.broadcast.emit("fire-reply", square);
+    socket.on("fire-reply", (classList) => {
+      console.log(classList, "classList");
+      socket.broadcast.emit("fire-reply", classList);
     });
   });
 };
