@@ -1,84 +1,107 @@
+//game meta data just to keep things consistent
 const boardMetaData = {
   size: 10,
   width: 400,
   height: 400,
 };
 
-const players = ["player", "opponent"];
-let currentPlayer;
+const colors = {
+  gridBackground: '#111827',
+  gridBorders: '#39FF14',
+};
 
+//basic game variables
 const ships = [
   {
-    name: "slowboat",
+    name: 'slowboat',
     length: 2,
-    color: "magenta",
+    color: 'magenta',
     rotated: false,
     placed: false,
     hitCount: 0,
     destroyed: false,
     el: null,
   },
-  // {
-  //   name: "bumboat",
-  //   length: 2,
-  //   color: "green",
-  //   rotated: false,
-  //   placed: false,
-  //   hitCount: 0,
-  //   destroyed: false,
-  //   el: null,
-  // },
-  // {
-  //   name: "speedboat",
-  //   length: 3,
-  //   color: "gold",
-  //   rotated: false,
-  //   placed: false,
-  //   hitCount: 0,
-  //   destroyed: false,
-  //   el: null,
-  // },
-  // {
-  //   name: "cruiser",
-  //   length: 3,
-  //   color: "blue",
-  //   rotated: false,
-  //   placed: false,
-  //   hitCount: 0,
-  //   destroyed: false,
-  //   el: null,
-  // },
-  // {
-  //   name: "submarine",
-  //   length: 4,
-  //   color: "purple",
-  //   rotated: false,
-  //   placed: false,
-  //   hitCount: 0,
-  //   destroyed: false,
-  //   el: null,
-  // },
+  {
+    name: 'bumboat',
+    length: 2,
+    color: 'green',
+    rotated: false,
+    placed: false,
+    hitCount: 0,
+    destroyed: false,
+    el: null,
+  },
+  {
+    name: 'speedboat',
+    length: 3,
+    color: 'gold',
+    rotated: false,
+    placed: false,
+    hitCount: 0,
+    destroyed: false,
+    el: null,
+  },
+  {
+    name: 'cruiser',
+    length: 3,
+    color: 'blue',
+    rotated: false,
+    placed: false,
+    hitCount: 0,
+    destroyed: false,
+    el: null,
+  },
+  {
+    name: 'submarine',
+    length: 4,
+    color: 'purple',
+    rotated: false,
+    placed: false,
+    hitCount: 0,
+    destroyed: false,
+    el: null,
+  },
 ];
-
 let opponentShips = JSON.parse(JSON.stringify(ships));
-
-const colors = {
-  gridBackground: "#111827",
-  gridBorders: "#39FF14",
-};
-
 const userBoard = [];
 const opponentBoard = [];
+const players = ['player', 'opponent'];
+let currentPlayer;
 
+// variables for multiplayer function
 let multiplayer = false;
 let playerNum = 0;
 let opponentReady = false;
 let shotFired = -1;
 let isPlayerReady = false;
 let ready = false;
-let firstInit = true;
-
 let socket;
+
+// variables for drag/drop functionality
+let selectedShip;
+let draggedShip;
+let draggedShipNameWithPositionIndex;
+let isOverlapping;
+
+const userGrid = document.getElementById('user-grid');
+const opponentGrid = document.getElementById('opponent-grid');
+const messageOutput = document.getElementById('message-output');
+
+// functions that run after dom content has been fully loaded
+document.addEventListener('DOMContentLoaded', () => {
+  document
+    .getElementById('multiplayer-button')
+    .addEventListener('click', startMultiplayer);
+
+  document
+    .getElementById('multiplayer-button')
+    .addEventListener('click', startMultiplayer);
+
+  generateBoard(userGrid, userBoard, 'player');
+  generateBoard(opponentGrid, opponentBoard, 'opponent');
+});
+
 const startMultiplayer = () => {
   generateShips(ships);
   initGameLogic();
@@ -87,19 +110,19 @@ const startMultiplayer = () => {
 
   multiplayer = true;
 
-  socket.on("player-number", (num) => {
+  socket.on('player-number', (num) => {
     console.log(typeof num);
     if (num === -1) {
-      console.log("server is full");
+      console.log('server is full');
     } else {
       playerNum = parseInt(num);
-      if (playerNum === 1) currentPlayer = "opponent";
-      console.log("checking players");
-      socket.emit("check-players");
+      if (playerNum === 1) currentPlayer = 'opponent';
+      console.log('checking players');
+      socket.emit('check-players');
     }
   });
 
-  socket.on("player-connection", (num) => {
+  socket.on('player-connection', (num) => {
     console.log(`Player ${num} has connected`);
     playerConnectedOrDisconnected(num);
   });
@@ -108,83 +131,80 @@ const startMultiplayer = () => {
     let player = `.p${parseInt(num) + 1} `;
     document
       .querySelector(`${player} .connected span`)
-      .classList.toggle("green");
+      .classList.toggle('green');
     if (parseInt(num) === playerNum) {
-      document.querySelector(`${player} .player-num`).style.fontWeight = "bold";
+      document.querySelector(`${player} .player-num`).style.fontWeight = 'bold';
       document.querySelector(`${player} .player-num`).innerText = `Player ${
         playerNum + 1
       } (you)`;
     }
   };
 
-  socket.on("opponent-ready", (num, ships) => {
-    console.log("opponent ready", ships);
+  socket.on('opponent-ready', (num, ships) => {
+    console.log('opponent ready', ships);
     opponentReady = true;
     opponentShips = ships;
     setPlayerReady(num);
     if (ready) {
       sendMessage(
         opponentReady
-          ? "Both players ready, starting game now"
-          : "Opponent is not yet ready! "
+          ? 'Both players ready, starting game now'
+          : 'Opponent is not yet ready! '
       );
       playGameMulti(socket);
     }
   });
 
-  socket.on("send-ships", () => {
-    console.log("sending ships");
-    socket.emit("sending-ships", ships);
+  socket.on('send-ships', () => {
+    console.log('sending ships');
+    socket.emit('sending-ships', ships);
   });
 
-  socket.on("receive-ships", (ships) => {
-    console.log("received ships", ships);
+  socket.on('receive-ships', (ships) => {
+    console.log('received ships', ships);
     opponentShips = ships;
     sendMessage(
-      "opponent is already ready, place your ships to start the game"
+      'Opponent is already ready, place your ships to start the game'
     );
   });
 
-  socket.on("check-players", (players) => {
+  socket.on('check-players', (players) => {
     players.forEach((p, i) => {
       if (p.connected) playerConnectedOrDisconnected(i);
       if (p.ready) {
         setPlayerReady(i);
         if (i !== playerNum) {
           opponentReady = true;
-          console.log("i should be getting ships here");
-          socket.emit("get-ships");
+          console.log('i should be getting ships here');
+          socket.emit('get-ships');
         }
       }
     });
   });
 
-  socket.on("fire", (id) => {
+  socket.on('fire', (id) => {
     playGameMulti(socket);
     shotFired = id;
     const grid = userBoard[id];
-    revealGrid(grid.el.classList, ships, "player");
-    socket.emit("fire-reply", grid.el.classList);
+    revealGrid(grid.el.classList, ships, 'player');
+    socket.emit('fire-reply', grid.el.classList);
     playGameMulti(socket);
   });
 
-  socket.on("fire-reply", (classList) => {
-    console.log("fire reply");
-    revealGrid(classList, opponentShips, "opponent");
+  socket.on('fire-reply', (classList) => {
+    console.log('fire reply');
+    revealGrid(classList, opponentShips, 'opponent');
     playGameMulti(socket);
   });
 };
 
-document
-  .getElementById("multiplayer-button")
-  .addEventListener("click", startMultiplayer);
-
+//TODO: NOT SURE IF THIS IS EVEN RUNNING
 const playGameMulti = (socket) => {
   if (opponentReady) {
-    if (currentPlayer === "user") {
-      sendMessage("your turn");
+    if (currentPlayer === 'user') {
+      sendMessage('your turn');
     }
-    if (currentPlayer === "ememy") {
+    if (currentPlayer === 'ememy') {
       sendMessage("opponent's turn");
     }
   }
@@ -192,30 +212,27 @@ const playGameMulti = (socket) => {
 
 const setPlayerReady = (num) => {
   let player = `.p${parseInt(num) + 1}`;
-  document.querySelector(`${player} .ready span`).classList.toggle("green");
+  document.querySelector(`${player} .ready span`).classList.toggle('green');
 };
-
-const userGrid = document.getElementById("user-grid");
-const opponentGrid = document.getElementById("opponent-grid");
-const messageOutput = document.getElementById("message-output");
 
 const sendMessage = (message) => {
   messageOutput.innerText = message;
 };
 
+//creates a single ship in the DOM using the ship meta data provided
 const createShip = (shipData, index) => {
-  const shipOuterDiv = document.createElement("div");
+  const shipOuterDiv = document.createElement('div');
   // shipOuterDiv.style.width = "100px";
   //create ship container
-  const shipDiv = document.createElement("div");
-  shipDiv.style.display = "inline-flex";
-  shipDiv.draggable = "true";
+  const shipDiv = document.createElement('div');
+  shipDiv.style.display = 'inline-flex';
+  shipDiv.draggable = 'true';
   shipDiv.id = `${shipData.name}-${index}`;
-  shipDiv.classList.add("ship");
+  shipDiv.classList.add('ship');
 
   //create ship grid positioning components
   for (let i = 0; i < shipData.length; i++) {
-    const shipGridDiv = document.createElement("div");
+    const shipGridDiv = document.createElement('div');
     shipGridDiv.id = `${shipData.name}-${i}`;
     shipGridDiv.style.height = `${boardMetaData.height / boardMetaData.size}px`;
     shipGridDiv.style.width = `${boardMetaData.width / boardMetaData.size}px`;
@@ -228,8 +245,9 @@ const createShip = (shipData, index) => {
   return shipOuterDiv;
 };
 
+//generates all the player's / oppponent's ships
 const generateShips = (ships) => {
-  const shipsContainer = document.getElementById("ships-container");
+  const shipsContainer = document.getElementById('ships-container');
   ships.forEach((ship, index) => {
     const createdShip = createShip(ship, index);
 
@@ -243,12 +261,12 @@ const generateShips = (ships) => {
 const generateBoard = (grid, board, role) => {
   idCounter = 0;
   for (let i = 0; i < boardMetaData.size; i++) {
-    const gridRow = document.createElement("div");
+    const gridRow = document.createElement('div');
     gridRow.style.width = `${boardMetaData.width}px`;
     gridRow.style.height = `${boardMetaData.height / boardMetaData.size}px`;
-    gridRow.style.display = "flex";
+    gridRow.style.display = 'flex';
     for (let j = 0; j < boardMetaData.size; j++) {
-      const squareGrid = document.createElement("div");
+      const squareGrid = document.createElement('div');
       const squareGridMetaData = {
         id: idCounter++,
         row: i,
@@ -264,21 +282,13 @@ const generateBoard = (grid, board, role) => {
         boardMetaData.height / boardMetaData.size
       }px`;
       squareGrid.style.border = `1px solid ${colors.gridBorders}`;
-      squareGrid.classList.add("square-grid");
+      squareGrid.classList.add('square-grid');
       gridRow.appendChild(squareGrid);
       board.push(squareGridMetaData);
     }
     grid.appendChild(gridRow);
   }
 };
-
-generateBoard(userGrid, userBoard, "player");
-generateBoard(opponentGrid, opponentBoard, "opponent");
-
-let selectedShip;
-let draggedShip;
-let draggedShipNameWithPositionIndex;
-let isOverlapping;
 
 const dragStart = (e) => {
   const draggedShipIndex = e.target.id.substr(-1);
@@ -288,7 +298,7 @@ const dragStart = (e) => {
 //check if player ship placement is legal
 const checkIfPositionValid = (gridId, start, end, isRotated, board) => {
   console.log(gridId);
-  const id = gridId.split("-")[1];
+  const id = gridId.split('-')[1];
   console.log(id);
   const gridMetaData = board[id];
   let lowerLimit;
@@ -311,7 +321,7 @@ const checkIfPositionValid = (gridId, start, end, isRotated, board) => {
 
 const getShipPositioning = (gridPlacementId, shipPositioningIndex, ship) => {
   const shipPositionIndex = parseInt(shipPositioningIndex.substr(-1)); //position index of ship
-  const id = gridPlacementId.split("-")[1];
+  const id = gridPlacementId.split('-')[1];
   let startingPositionOnGrid;
   let endingPositionOnGrid;
   let positionArray = [];
@@ -369,12 +379,12 @@ const dragOver = (e) => {
   //highlight blocks that are being selected
   if (positionArray) {
     isOverlapping = positionArray.some((index) =>
-      userBoard[index].el.classList.contains("target")
+      userBoard[index].el.classList.contains('target')
     );
     positionArray.forEach((index) => {
       const grid = userBoard[index].el;
       if (!isOverlapping) {
-        grid.style.backgroundColor = "red";
+        grid.style.backgroundColor = 'red';
       }
     });
   }
@@ -393,11 +403,11 @@ const dragDrop = (e) => {
       const grid = userBoard[index].el;
       grid.classList.add(draggedShip.name);
       grid.style.backgroundColor = draggedShip.color;
-      grid.classList.add("target");
+      grid.classList.add('target');
 
       //remove ship from ship container once placed
     });
-    draggedShip.el.style.visibility = "hidden";
+    draggedShip.el.style.visibility = 'hidden';
     draggedShip.placed = true;
 
     //check if all shipped have been placed
@@ -405,25 +415,19 @@ const dragDrop = (e) => {
 
     if (isPlayerReady) {
       if (multiplayer) {
-        socket.emit("player-ready", playerNum, ships);
+        socket.emit('player-ready', playerNum, ships);
         ready = true;
         setPlayerReady(playerNum);
         if (opponentReady) {
           playGameMulti(socket);
-          sendMessage("BOth players are ready starting game now");
-        } else sendMessage("opponent is not yet ready");
+          sendMessage('Both players are ready starting game now');
+        } else sendMessage('opponent is not yet ready');
       } else {
         playGameSingle();
         placeShips(JSON.parse(JSON.stringify(opponentShips)));
       }
     }
   }
-
-  //check if game can begin
-};
-
-const dragEnter = (e) => {
-  e.preventDefault();
 };
 
 const dragLeave = (e) => {
@@ -438,69 +442,67 @@ const dragLeave = (e) => {
   if (positionArray) {
     positionArray.forEach((index) => {
       const grid = userBoard[index].el;
-      if (!(grid.classList && grid.classList.contains("target"))) {
+      if (!(grid.classList && grid.classList.contains('target'))) {
         userBoard[index].el.style.backgroundColor = colors.gridBackground;
       }
     });
   }
 };
 
-const dragEnd = () => {};
-
+// initialises drag and drop functionality for user's board, and point click
+// functionality for opponent's board
 const initGameLogic = () => {
   ships.forEach((ship) => {
-    ship.el.addEventListener("mousedown", (e) => {
+    ship.el.addEventListener('mousedown', (e) => {
       draggedShipNameWithPositionIndex = e.target.id;
     });
 
-    ship.el.addEventListener("mouseover", (e) => {
+    ship.el.addEventListener('mouseover', (e) => {
       const shipDiv = e.target.parentElement;
       console.log(shipDiv);
-      selectedShip = shipDiv.style.outline = "2px solid blue";
-      shipDiv.style.outlineOffset = "2px";
+      selectedShip = shipDiv.style.outline = '2px solid blue';
+      shipDiv.style.outlineOffset = '2px';
     });
 
-    ship.el.addEventListener("mouseout", (e) => {
+    ship.el.addEventListener('mouseout', (e) => {
       const shipDiv = e.target.parentElement;
-      shipDiv.style.outline = "";
+      shipDiv.style.outline = '';
     });
 
-    ship.el.addEventListener("click", (e) => {
-      console.log("clicked");
+    ship.el.addEventListener('click', (e) => {
+      console.log('clicked');
       // how do i rotate the ship
       const shipDiv = e.target.parentElement;
       const shipId = shipDiv.id.substr(-1);
 
       const ship = ships[shipId];
-      const rotate = ship.rotated ? "inline-flex" : "inline-block";
+      const rotate = ship.rotated ? 'inline-flex' : 'inline-block';
 
       ship.rotated = !ship.rotated;
       shipDiv.style.display = rotate;
     });
 
-    ship.el.addEventListener("dragstart", dragStart);
+    ship.el.addEventListener('dragstart', dragStart);
   });
 
   userBoard.forEach((square) => {
-    square.el.addEventListener("dragstart", dragStart);
-    square.el.addEventListener("dragover", dragOver);
-    square.el.addEventListener("dragenter", dragEnter);
-    square.el.addEventListener("dragleave", dragLeave);
-    square.el.addEventListener("drop", dragDrop);
-    square.el.addEventListener("dragend", dragEnd);
+    square.el.addEventListener('dragstart', dragStart);
+    square.el.addEventListener('dragover', dragOver);
+    square.el.addEventListener('dragleave', dragLeave);
+    square.el.addEventListener('drop', dragDrop);
   });
 
   opponentBoard.forEach((grid) => {
-    grid.el.style.cursor = "pointer";
-    grid.el.addEventListener("click", (e) => {
-      shotFired = e.target.id.split("-")[1];
-      if (multiplayer) socket.emit("fire", grid.el.id.split("-")[1]);
-      else revealGrid(grid.el.classList, opponentShips, "opponent");
+    grid.el.style.cursor = 'pointer';
+    grid.el.addEventListener('click', (e) => {
+      shotFired = e.target.id.split('-')[1];
+      if (multiplayer) socket.emit('fire', grid.el.id.split('-')[1]);
+      else revealGrid(grid.el.classList, opponentShips, 'opponent');
     });
   });
 };
 
-//algorithim that places ships legally within the grid for the cpu
+//algorithim that places ships legally within the grid for the cpu (for singleplayer mode)
 const placeShips = (ships) => {
   const randomShipIndex = _.random(0, ships.length - 1);
   const cpuShip = ships[randomShipIndex];
@@ -508,14 +510,14 @@ const placeShips = (ships) => {
   cpuShip.rotated = _.random(1) === 1 ? true : false;
   const positionArray = getShipGridIndex(
     `opponent-${randomGridId}`,
-    "1",
+    '1',
     cpuShip,
     opponentBoard
   );
 
   if (positionArray) {
     const isOverlapping = positionArray.some((index) =>
-      opponentBoard[index].el.classList.contains("target")
+      opponentBoard[index].el.classList.contains('target')
     );
     if (isOverlapping) {
       placeShips(ships);
@@ -526,7 +528,7 @@ const placeShips = (ships) => {
       const grid = opponentBoard[index].el;
       grid.style.backgroundColor = cpuShip.color;
       grid.classList.add(cpuShip.name);
-      grid.classList.add("target");
+      grid.classList.add('target');
 
       //remove ship from ship container once placed
     });
@@ -539,30 +541,28 @@ const placeShips = (ships) => {
   }
 };
 
+//tells script to run single player mode
 const startSinglePlayer = () => {
-  sendMessage("Starting single player mode");
+  sendMessage('Starting single player mode');
   generateShips(ships);
   initGameLogic();
 
-  currentPlayer = "player";
+  currentPlayer = 'player';
 };
 
-document
-  .getElementById("singleplayer-button")
-  .addEventListener("click", startSinglePlayer);
-
+//game logic for single player mode
 const playGameSingle = () => {
   sendMessage(`${currentPlayer}'s turn`);
   switch (currentPlayer) {
-    case "player":
-      console.log("player turn");
+    case 'player':
+      console.log('player turn');
       return;
-    case "opponent":
-      console.log("computer turn");
+    case 'opponent':
+      console.log('computer turn');
       const randomGridIndex = _.random(0, 99);
       const grid = userBoard[randomGridIndex];
       setTimeout(() => {
-        revealGrid(grid.el.classList, ships, "player");
+        revealGrid(grid.el.classList, ships, 'player');
       }, 200);
       return;
     default:
@@ -571,8 +571,6 @@ const playGameSingle = () => {
 };
 
 const checkForWinner = (ships) => {
-  console.log(ships);
-  console.log(ships.every((ship) => ship.destroyed));
   if (ships.every((ship) => ship.destroyed)) {
     return players.filter((player) => player !== currentPlayer);
   }
@@ -580,40 +578,41 @@ const checkForWinner = (ships) => {
   return null;
 };
 
-//probably going to have to change how this works fundametally if i wnt it to work for both
-//single player and multiplayer
+//reveals if a ship is in the existing spot on the grid by getting an array of css classes
+// works for both singleplayer/multiplayer mode
 const revealGrid = (classList, ships, role) => {
-  // because sometimes i get a object back instead, i need to reformat into a standard arr format
+  // because sometimes i get a object back instead, i need to reformat into a standard arr format (DONE)
   const grid = document.getElementById(`${role}-${shotFired}`);
   const arr = Object.values(classList);
-  console.log(arr);
-  if (!arr.includes("exploded")) {
+  if (!arr.includes('exploded')) {
     ships.forEach((ship, index) => {
       if (arr.includes(ship.name)) ship.hitCount++;
       if (ship.hitCount === ship.length) ship.destroyed = true;
     });
   }
 
-  if (arr.includes("target")) {
-    grid.classList.add("exploded");
-    grid.style.backgroundColor = "red";
+  if (arr.includes('target')) {
+    grid.classList.add('exploded');
+    grid.style.backgroundColor = 'red';
   } else {
-    grid.classList.add("missed");
-    grid.style.backgroundColor = "grey";
+    grid.classList.add('missed');
+    grid.style.backgroundColor = 'grey';
   }
 
   const winner = checkForWinner(ships);
-  console.log(winner);
   if (winner) {
     endGame();
+    if (multiplayer) socket.emit('game-over', playerNum);
   } else {
     currentPlayer = players.filter((player) => player !== currentPlayer)[0];
-    console.log(currentPlayer, "current player");
+    console.log(currentPlayer, 'current player');
     if (!multiplayer) playGameSingle();
   }
 };
 
 const endGame = () => {
-  sendMessage(`${currentPlayer} is the winner!`);
-  console.log("game end", currentPlayer);
+  if (!multiplayer) {
+    sendMessage(`${currentPlayer} is the winner!`);
+    console.log('game end', currentPlayer);
+  }
 };
