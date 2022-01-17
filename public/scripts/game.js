@@ -620,6 +620,12 @@ const revealGrid = (classList, ships, role) => {
   }
 };
 
+const resetBoard = () => {};
+
 const endGame = (winner) => {
   sendMessage(`${winner} is the winner!`);
+  alert('board will reset in 10s');
+  setTimeout(() => {
+    resetBoard();
+  }, 10000);
 };
