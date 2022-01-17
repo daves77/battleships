@@ -22,52 +22,52 @@ const ships = [
     destroyed: false,
     el: null,
   },
-  {
-    name: 'bumboat',
-    length: 2,
-    color: 'green',
-    rotated: false,
-    placed: false,
-    hitCount: 0,
-    destroyed: false,
-    el: null,
-  },
-  {
-    name: 'speedboat',
-    length: 3,
-    color: 'gold',
-    rotated: false,
-    placed: false,
-    hitCount: 0,
-    destroyed: false,
-    el: null,
-  },
-  {
-    name: 'cruiser',
-    length: 3,
-    color: 'blue',
-    rotated: false,
-    placed: false,
-    hitCount: 0,
-    destroyed: false,
-    el: null,
-  },
-  {
-    name: 'submarine',
-    length: 4,
-    color: 'purple',
-    rotated: false,
-    placed: false,
-    hitCount: 0,
-    destroyed: false,
-    el: null,
-  },
+  // {
+  //   name: 'bumboat',
+  //   length: 2,
+  //   color: 'green',
+  //   rotated: false,
+  //   placed: false,
+  //   hitCount: 0,
+  //   destroyed: false,
+  //   el: null,
+  // },
+  // {
+  //   name: 'speedboat',
+  //   length: 3,
+  //   color: 'gold',
+  //   rotated: false,
+  //   placed: false,
+  //   hitCount: 0,
+  //   destroyed: false,
+  //   el: null,
+  // },
+  // {
+  //   name: 'cruiser',
+  //   length: 3,
+  //   color: 'blue',
+  //   rotated: false,
+  //   placed: false,
+  //   hitCount: 0,
+  //   destroyed: false,
+  //   el: null,
+  // },
+  // {
+  //   name: 'submarine',
+  //   length: 4,
+  //   color: 'purple',
+  //   rotated: false,
+  //   placed: false,
+  //   hitCount: 0,
+  //   destroyed: false,
+  //   el: null,
+  // },
 ];
 let opponentShips = JSON.parse(JSON.stringify(ships));
 const userBoard = [];
 const opponentBoard = [];
 const players = ['player', 'opponent'];
-let currentPlayer;
+let currentPlayer = 0;
 
 // variables for multiplayer function
 let multiplayer = false;
@@ -75,7 +75,6 @@ let playerNum = 0;
 let opponentReady = false;
 let shotFired = -1;
 let isPlayerReady = false;
-let ready = false;
 let socket;
 
 // variables for drag/drop functionality
@@ -95,8 +94,8 @@ document.addEventListener('DOMContentLoaded', () => {
     .addEventListener('click', startMultiplayer);
 
   document
-    .getElementById('multiplayer-button')
-    .addEventListener('click', startMultiplayer);
+    .getElementById('singleplayer-button')
+    .addEventListener('click', startSinglePlayer);
 
   generateBoard(userGrid, userBoard, 'player');
   generateBoard(opponentGrid, opponentBoard, 'opponent');
@@ -145,7 +144,7 @@ const startMultiplayer = () => {
     opponentReady = true;
     opponentShips = ships;
     setPlayerReady(num);
-    if (ready) {
+    if (isPlayerReady) {
       sendMessage(
         opponentReady
           ? 'Both players ready, starting game now'
@@ -182,19 +181,29 @@ const startMultiplayer = () => {
     });
   });
 
-  socket.on('fire', (id) => {
+  socket.on('fire', (id, playerId) => {
     playGameMulti(socket);
     shotFired = id;
     const grid = userBoard[id];
+    currentPlayer = Number(!playerId);
+    socket.emit('fire-reply', grid.el.classList, currentPlayer);
+    sendMessage('It is your turn');
     revealGrid(grid.el.classList, ships, 'player');
-    socket.emit('fire-reply', grid.el.classList);
-    playGameMulti(socket);
   });
 
   socket.on('fire-reply', (classList) => {
     console.log('fire reply');
-    revealGrid(classList, opponentShips, 'opponent');
     playGameMulti(socket);
+    //change current player to opponent
+    currentPlayer = Number(!playerNum);
+    sendMessage("it is your opponent's turn");
+    revealGrid(classList, opponentShips, 'opponent');
+  });
+
+  socket.on('game-over', (winner) => {
+    // const reverseWinner = winner === 'Player' ? 'Opponent' : 'Player';
+    // sendMessage(`${reverseWinner} is the winner! `);
+    //need some game ending function where the users cant manipulate the board
   });
 };
 
@@ -416,7 +425,6 @@ const dragDrop = (e) => {
     if (isPlayerReady) {
       if (multiplayer) {
         socket.emit('player-ready', playerNum, ships);
-        ready = true;
         setPlayerReady(playerNum);
         if (opponentReady) {
           playGameMulti(socket);
@@ -496,8 +504,11 @@ const initGameLogic = () => {
     grid.el.style.cursor = 'pointer';
     grid.el.addEventListener('click', (e) => {
       shotFired = e.target.id.split('-')[1];
-      if (multiplayer) socket.emit('fire', grid.el.id.split('-')[1]);
-      else revealGrid(grid.el.classList, opponentShips, 'opponent');
+      if (multiplayer) {
+        if (currentPlayer === playerNum) {
+          socket.emit('fire', grid.el.id.split('-')[1], playerNum);
+        } else sendMessage('Please wait for your opponent to make their move!');
+      } else revealGrid(grid.el.classList, opponentShips, 'opponent');
     });
   });
 };
@@ -571,11 +582,7 @@ const playGameSingle = () => {
 };
 
 const checkForWinner = (ships) => {
-  if (ships.every((ship) => ship.destroyed)) {
-    return players.filter((player) => player !== currentPlayer);
-  }
-
-  return null;
+  return ships.every((ship) => ship.destroyed);
 };
 
 //reveals if a ship is in the existing spot on the grid by getting an array of css classes
@@ -599,20 +606,20 @@ const revealGrid = (classList, ships, role) => {
     grid.style.backgroundColor = 'grey';
   }
 
-  const winner = checkForWinner(ships);
-  if (winner) {
-    endGame();
-    if (multiplayer) socket.emit('game-over', playerNum);
+  const gameOver = checkForWinner(ships);
+  if (gameOver) {
+    console.log('triggered here');
+    const winner = role === 'player' ? 'Opponent' : 'Player';
+    endGame(winner);
+    if (multiplayer) socket.emit('game-over', winner);
   } else {
-    currentPlayer = players.filter((player) => player !== currentPlayer)[0];
-    console.log(currentPlayer, 'current player');
-    if (!multiplayer) playGameSingle();
+    if (!multiplayer) {
+      currentPlayer = players.filter((player) => player !== currentPlayer)[0];
+      playGameSingle();
+    }
   }
 };
 
-const endGame = () => {
-  if (!multiplayer) {
-    sendMessage(`${currentPlayer} is the winner!`);
-    console.log('game end', currentPlayer);
-  }
+const endGame = (winner) => {
+  sendMessage(`${winner} is the winner!`);
 };

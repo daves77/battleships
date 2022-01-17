@@ -50,9 +50,8 @@ module.exports = (io) => {
       socket.broadcast.emit('receive-ships', ships);
     });
 
-    socket.on('fire', (id) => {
-      console.log(`shot fired from ${playerIndex}`, id);
-      socket.broadcast.emit('fire', id);
+    socket.on('fire', (gridId, currentPlayer) => {
+      socket.broadcast.emit('fire', gridId, currentPlayer);
     });
 
     socket.on('fire-reply', (classList) => {
